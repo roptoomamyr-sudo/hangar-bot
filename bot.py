@@ -1,19 +1,18 @@
-﻿import logging
+import logging
 import uuid
 import asyncio
-import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiohttp import web
 
 BOT_TOKEN = "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw"
 ADMIN_CHAT_ID = 5303673207
+SITE_DOMAIN = "https://magenta-julienne-22.tiiny.site"
 
+logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 tokens_db = {}
-SITE_DOMAIN = "https://magenta-julienne-22.tiiny.site"
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
@@ -49,45 +48,8 @@ async def generate_link(message: types.Message):
         parse_mode="Markdown"
     )
 
-async def check_token_handler(request):
-    headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET",
-        "Access-Control-Allow-Headers": "Content-Type"
-    }
-    
-    token = request.query.get("token")
-    user_agent = request.headers.get("User-Agent", "").lower()
-
-    is_bot = any(b in user_agent for b in ["whatsapp", "telegram", "facebookexternalhit", "twitterbot", "meta-externalagent"])
-    if is_bot:
-        return web.json_response({"status": "preview_ignored"}, headers=headers)
-
-    if token in tokens_db:
-        data = tokens_db[token]
-        if data["status"] == "active":
-            data["status"] = "used"
-            await bot.send_message(
-                ADMIN_CHAT_ID, 
-                f"🔔 *Клиент только что открыл калькулятор!\n\n👤 Клиент: *{data['client']}**",
-                parse_mode="Markdown"
-            )
-            return web.json_response({"status": "valid", "client": data["client"]}, headers=headers)
-        else:
-            return web.json_response({"status": "used"}, headers=headers)
-    
-    return web.json_response({"status": "invalid"}, headers=headers)
-
 async def main():
-    app = web.Application()
-    app.router.add_get("/api/check-token", check_token_handler)
-    
-    port = int(os.environ.get("PORT", 8080))
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if _name_ == "_main_":
