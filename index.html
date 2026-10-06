@@ -137,39 +137,42 @@
             return;
         }
 
-        // Тайм-аут 3 секунды: если Render еще не проснулся, откроем калькулятор сразу
+        // Тайм-аут 1.5 сек
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
             controller.abort();
             loader.style.display = 'none';
             calc.style.display = 'block';
             calculate();
-        }, 3000);
+        }, 1500);
 
         try {
-            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token}, { signal: controller.signal });
+            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token}, { 
+                method: 'GET',
+                signal: controller.signal 
+            });
             clearTimeout(timeoutId);
             const data = await response.json();
 
-            loader.style.display = 'none';
-
-            if (data.status === 'valid') {
+            if (data.status === 'used') {
+                calc.style.display = 'none';
+                loader.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorMsg.innerText = '⛔ Эта ссылка уже была использована ранее. Запросите новую ссылку у менеджера.';
+            } else if (data.status === 'invalid') {
+                calc.style.display = 'none';
+                loader.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorMsg.innerText = '⚠️ Недействительная или устаревшая ссылка.';
+            } else {
+                loader.style.display = 'none';
                 calc.style.display = 'block';
                 if (data.client) {
                     document.getElementById('welcome-client').innerText = Расчёт для: ${data.client};
                 }
                 calculate();
-            } else if (data.status === 'used') {
-                calc.style.display = 'none';
-                errorBox.style.display = 'block';
-                errorMsg.innerText = '⛔ Эта ссылка уже была использована ранее. Запросите новую ссылку у менеджера.';
-            } else if (data.status === 'invalid') {
-                calc.style.display = 'none';
-                errorBox.style.display = 'block';
-                errorMsg.innerText = '⚠️ Недействительная или устаревшая ссылка.';
             }
         } catch (err) {
-            console.log('Сервер загружается, покатываем калькулятор по умолчанию');
             loader.style.display = 'none';
             calc.style.display = 'block';
             calculate();
