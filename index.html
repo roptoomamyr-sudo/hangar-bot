@@ -54,7 +54,24 @@
             </div>
         </div>
 
-        <div class="section-title">2. Монтаж и доставка</div>
+        <div class="section-title">2. Ворота</div>
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 2;">
+                <label for="gates">Размер распашных ворот:</label>
+                <select id="gates" onchange="calculate()">
+                    <option value="none">Без ворот</option>
+                    <option value="3x3">Ворота 3 × 3 м</option>
+                    <option value="4x4" selected>Ворота 4 × 4 м</option>
+                    <option value="5x5">Ворота 5 × 5 м</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="gateCount">Количество (шт):</label>
+                <input type="number" id="gateCount" value="1" min="0" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="section-title">3. Монтаж и доставка</div>
         <div class="checkbox-group">
             <input type="checkbox" id="montage" checked onchange="calculate()">
             <label for="montage">Включить монтаж строительной бригады</label>
@@ -62,17 +79,6 @@
         <div class="form-group">
             <label for="distance">Расстояние доставки от г. Костанай (км):</label>
             <input type="number" id="distance" value="0" min="0" oninput="calculate()">
-        </div>
-
-        <div class="section-title">3. Ворота</div>
-        <div class="form-group">
-            <label for="gates">Размер распашных ворот:</label>
-            <select id="gates" onchange="calculate()">
-                <option value="none">Без ворот</option>
-                <option value="3x3">Ворота 3 × 3 м</option>
-                <option value="4x4" selected>Ворота 4 × 4 м</option>
-                <option value="5x5">Ворота 5 × 5 м</option>
-            </select>
         </div>
 
         <div class="section-title">4. Фундамент</div>
@@ -162,33 +168,50 @@
             constrCostNoNDS += constrCostNoNDS * ((wallHeight - 4) * 0.03);
         }
 
-        // 2. Расчет монтажа
+        // 2. Расчет ворот и их ширины для фундамента
+        var gateVal = document.getElementById('gates').value;
+        var gateCount = parseInt(document.getElementById('gateCount').value) || 0;
+        
+        var singleGatePriceWithNDS = 0;
+        var gateWidth = 0;
+
+        if (gateVal === '3x3') {
+            singleGatePriceWithNDS = 600000;
+            gateWidth = 3;
+        } else if (gateVal === '4x4') {
+            singleGatePriceWithNDS = 700000;
+            gateWidth = 4;
+        } else if (gateVal === '5x5') {
+            singleGatePriceWithNDS = 800000;
+            gateWidth = 5;
+        }
+
+        var gatesCostWithNDS = singleGatePriceWithNDS * gateCount;
+        var totalGatesWidthDeduction = gateWidth * gateCount; // Длина фундамента, вычитаемая под ворота
+
+        // 3. Расчет монтажа
         var montageCostNoNDS = 0;
         if (document.getElementById('montage').checked) {
             montageCostNoNDS = constrCostNoNDS * (isTent ? 0.18 : 0.23);
         }
 
-        // 3. Расчет доставки
+        // 4. Расчет доставки
         var distance = parseFloat(document.getElementById('distance').value) || 0;
         var deliveryCostNoNDS = distance * 1000;
 
-        // 4. Расчет ворот (уже с НДС)
-        var gateVal = document.getElementById('gates').value;
-        var gatesCostWithNDS = 0;
-        if (gateVal === '3x3') gatesCostWithNDS = 600000;
-        else if (gateVal === '4x4') gatesCostWithNDS = 700000;
-        else if (gateVal === '5x5') gatesCostWithNDS = 800000;
-
-        // 5. Расчет фундамента
+        // 5. Расчет фундамента (с учётом вычета под ворота)
         var foundationCostNoNDS = 0;
         var totalCubes = 0;
         if (document.getElementById('useFoundation').checked) {
             var fW = parseFloat(document.getElementById('foundWidth').value) || 0.4;
             var fH = parseFloat(document.getElementById('foundHeight').value) || 0.6;
 
-            var perimeter = 2 * (width + length);
-            var tapeCubes = perimeter * fW * fH;
-            var blindAreaCubes = perimeter * 1.0 * 0.1;
+            var fullPerimeter = 2 * (width + length);
+            // Вычитаем длину ворот из периметра ленты
+            var tapeLength = Math.max(0, fullPerimeter - totalGatesWidthDeduction);
+            
+            var tapeCubes = tapeLength * fW * fH;
+            var blindAreaCubes = fullPerimeter * 1.0 * 0.1; // Отмостка считается по всему периметру
 
             var supportsCount = Math.floor(length / 3) * 2 + 8;
             var pilesCubes = supportsCount * 0.25;
