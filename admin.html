@@ -71,7 +71,8 @@
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
     function generateLink() {
-        const clientName = document.getElementById('clientName').value.trim();
+        const clientInput = document.getElementById('clientName');
+        const clientName = clientInput ? clientInput.value.trim() : "";
         if (!clientName) {
             alert("Пожалуйста, введите имя клиента!");
             return;
@@ -94,7 +95,7 @@
 
             try {
                 const response = JSON.parse(xhrGet.responseText);
-                const db = response.record || {};
+                let db = response.record || {};
 
                 const linkId = "id_" + Date.now();
                 const now = new Date();
@@ -118,7 +119,7 @@
                         document.getElementById('generated-url').innerText = fullUrl;
                         document.getElementById('result-box').style.display = 'block';
                         document.getElementById('clientName').value = '';
-                        loadHistory(); // Автоматически обновляем историю
+                        loadHistory();
                     } else {
                         statusText.style.color = "red";
                         statusText.innerText = "Ошибка записи ссылки.";
@@ -128,9 +129,15 @@
                 xhrPut.send(JSON.stringify(db));
 
             } catch(e) {
+                console.error(e);
                 statusText.style.color = "red";
-                statusText.innerText = "Ошибка обработки ответа.";
+                statusText.innerText = "Ошибка обработки данных.";
             }
+        };
+
+        xhrGet.onerror = function() {
+            statusText.style.color = "red";
+            statusText.innerText = "Ошибка сети при обращении к серверу.";
         };
 
         xhrGet.send();
@@ -148,51 +155,60 @@
         const table = document.getElementById('history-table');
         const tbody = document.getElementById('history-body');
 
-        loading.style.display = 'block';
-        table.style.display = 'none';
-        tbody.innerHTML = '';
+        if (loading) loading.style.display = 'block';
+        if (table) table.style.display = 'none';
+        if (tbody) tbody.innerHTML = '';
 
         const xhr = new XMLHttpRequest();
         xhr.open("GET", https://api.jsonbin.io/v3/b/${BIN_ID}/latest, true);
         xhr.setRequestHeader("X-Master-Key", SECRET_KEY);
 
         xhr.onload = function() {
-            loading.style.display = 'none';
+            if (loading) loading.style.display = 'none';
             if (xhr.status === 200) {
-                const response = JSON.parse(xhr.responseText);
-                const db = response.record || {};
-                
-                const keys = Object.keys(db).reverse(); // Свежие ссылки вверху
-                if (keys.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ссылки ещё не создавались</td></tr>';
-                } else {
-                    keys.forEach(key => {
-                        const item = db[key];
-                        if (typeof item === 'object' && item.client) {
-                            const tr = document.createElement('tr');
-                            
-                            const statusBadge = item.used 
-                                ? '<span class="badge-used">🔴 Сгорела (Открыта)</span>' 
-                                : '<span class="badge-pending">🟡 Ожидает открытия</span>';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    const db = response.record || {};
+                    
+                    const keys = Object.keys(db).reverse();
+                    if (keys.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ссылки ещё не создавались</td></tr>';
+                    } else {
+                        keys.forEach(key => {
+                            const item = db[key];
+                            if (item && typeof item === 'object') {
+                                const clientName = item.client || (typeof item === 'string' ? item : 'Без имени');
+                                const isUsed = item.used === true;
+                                const createdAt = item.created_at || '—';
 
-                            tr.innerHTML = `
-                                <td><b>${item.client}</b></td>
-                                <td>${item.created_at || '—'}</td>
-                                <td>${statusBadge}</td>
-                            `;
-                            tbody.appendChild(tr);
-                        }
-                    });
+                                const tr = document.createElement('tr');
+                                const statusBadge = isUsed 
+                                    ? '<span class="badge-used">🔴 Сгорела (Открыта)</span>' 
+                                    : '<span class="badge-pending">🟡 Ожидает открытия</span>';
+
+                                tr.innerHTML = `
+                                    <td><b>${clientName}</b></td>
+                                    <td>${createdAt}</td>
+                                    <td>${statusBadge}</td>
+                                `;
+                                tbody.appendChild(tr);
+                            }
+                        });
+                    }
+                    if (table) table.style.display = 'table';
+                } catch(e) {
+                    console.error("Ошибка при разборе истории:", e);
                 }
-                table.style.display = 'table';
             }
         };
 
         xhr.send();
     }
 
-    // Автоматическая загрузка истории при открытии админки
-    loadHistory();
+    // Автоматическая загрузка истории при открытии
+    window.onload = function() {
+        loadHistory();
+    };
 </script>
 
 </body>
