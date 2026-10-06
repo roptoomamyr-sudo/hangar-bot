@@ -19,7 +19,7 @@
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 500px;
+            max-width: 550px;
             width: 100%;
             padding: 25px;
             box-sizing: border-box;
@@ -44,7 +44,16 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             box-sizing: border-box;
-            font-size: 16px;
+            font-size: 15px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .checkbox-group input {
+            width: auto;
         }
         .result {
             margin-top: 20px;
@@ -56,6 +65,7 @@
             font-size: 18px;
             text-align: center;
             font-weight: bold;
+            line-height: 1.5;
         }
         .error-screen {
             text-align: center;
@@ -75,74 +85,114 @@
         <p id="welcome-client" style="text-align: center; color: #007bff; font-weight: bold;"></p>
         
         <div class="form-group">
-            <label for="width">Ширина (м):</label>
-            <input type="number" id="width" value="12" oninput="calculate()">
-        </div>
-
-        <div class="form-group">
-            <label for="length">Длина (м):</label>
-            <input type="number" id="length" value="30" oninput="calculate()">
-        </div>
-
-        <div class="form-group">
-            <label for="type">Тип ангара:</label>
-            <select id="type" onchange="calculate()">
-                <option value="15000">Холодный (арочный) — 15 000 ₸/м²</option>
-                <option value="25000">Утеплённый (сэндвич) — 25 000 ₸/м²</option>
+            <label for="shape">Тип конструкции:</label>
+            <select id="shape" onchange="calculate()">
+                <option value="1.0">Арочный ангар</option>
+                <option value="1.2">Прямостенный ангар (+20%)</option>
+                <option value="1.15">Шатровый ангар (+15%)</option>
+                <option value="1.25">Полигональный ангар (+25%)</option>
             </select>
         </div>
 
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label for="width">Ширина (м):</label>
+                <input type="number" id="width" value="12" min="1" oninput="calculate()">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="length">Длина (м):</label>
+                <input type="number" id="length" value="30" min="1" oninput="calculate()">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="height">Высота (м):</label>
+                <input type="number" id="height" value="6" min="1" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="type">Тип обшивки и утепления:</label>
+            <select id="type" onchange="calculate()">
+                <option value="15000">Холодный (Профлист) — 15 000 ₸/м²</option>
+                <option value="22000">Утеплённый (Профлист + Минвата) — 22 000 ₸/м²</option>
+                <option value="30000">Тёплый (Сэндвич-панели 100мм) — 30 000 ₸/м²</option>
+                <option value="38000">Тёплый (Сэндвич-панели 150мм) — 38 000 ₸/м²</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Дополнительно:</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="foundation" onchange="calculate()">
+                <label for="foundation">Заливка фундамента (+5 000 ₸/м²)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="gates" checked onchange="calculate()">
+                <label for="gates">Ворота распашные (250 000 ₸)</label>
+            </div>
+        </div>
+
         <div class="result" id="total-price">
-            Итоговая стоимость: 5 400 000 ₸
+            Загрузка расчёта...
         </div>
     </div>
 
     <div id="error-box" class="error-screen" style="display: none;">
-        <h2 id="error-title">Ошибка доступа</h2>
-        <p id="error-message">Эта ссылка уже была использована ранее.</p>
+        <h2 id="error-title">Доступ ограничен</h2>
+        <p id="error-message">Эта персональная ссылка уже была использована ранее.</p>
     </div>
 </div>
 
 <script>
-    const RENDER_SERVER = "https://hangar-bot-jxwb.onrender.com"; 
-
     function calculate() {
+        const shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
         const width = parseFloat(document.getElementById('width').value) || 0;
         const length = parseFloat(document.getElementById('length').value) || 0;
-        const pricePerMeter = parseFloat(document.getElementById('type').value) || 0;
+        const basePricePerMeter = parseFloat(document.getElementById('type').value) || 0;
 
         const area = width * length;
-        const total = area * pricePerMeter;
+        let pricePerMeter = basePricePerMeter * shapeCoeff;
+        
+        if (document.getElementById('foundation').checked) {
+            pricePerMeter += 5000;
+        }
 
-        document.getElementById('total-price').innerText = Площадь: ${area} м²\nИтого: ${total.toLocaleString('ru-RU')} ₸;
+        let total = area * pricePerMeter;
+
+        if (document.getElementById('gates').checked) {
+            total += 250000;
+        }
+
+        document.getElementById('total-price').innerHTML = `
+            Площадь: <b>${area} м²</b><br>
+            Ориентировочная стоимость: <b>${Math.round(total).toLocaleString('ru-RU')} ₸</b>
+        `;
     }
 
-    async function checkTokenAsync() {
+    function initPage() {
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        const client = urlParams.get('client');
+        const linkId = urlParams.get('id') || client;
 
-        if (!token) return;
-
-        try {
-            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token});
-            const data = await response.json();
-
-            if (data.status === 'used' || data.status === 'invalid') {
+        // Если есть идентификатор ссылки, проверяем, не открывали ли ее ранее на этом устройстве
+        if (linkId) {
+            const visitedKey = 'visited_' + linkId;
+            if (localStorage.getItem(visitedKey)) {
                 document.getElementById('calculator').style.display = 'none';
                 document.getElementById('error-box').style.display = 'block';
-            } else if (data.status === 'valid' && data.client) {
-                document.getElementById('welcome-client').innerText = Расчёт для: ${data.client};
+                return;
             }
-        } catch (err) {
-            console.log('Фоновая проверка выполняется...');
+            // Отмечаем ссылку как использованную
+            localStorage.setItem(visitedKey, 'true');
         }
+
+        if (client) {
+            document.getElementById('welcome-client').innerText = Расчёт для: ${decodeURIComponent(client)};
+        }
+
+        calculate();
     }
 
-    // Калькулятор сходу открывается и считает
-    calculate();
-
-    // Проверка ссылки параллельно в фоновом режиме
-    checkTokenAsync();
+    initPage();
 </script>
 
 </body>
