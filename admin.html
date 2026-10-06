@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор ссылок | Админ-панель</title>
+    <title>Генератор ссылок</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,20 +24,9 @@
             padding: 25px;
             box-sizing: border-box;
         }
-        h2 {
-            margin-top: 0;
-            color: #333;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
+        h2 { margin-top: 0; color: #333; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
         input {
             width: 100%;
             padding: 12px;
@@ -58,9 +47,6 @@
             cursor: pointer;
             margin-top: 10px;
         }
-        button:hover {
-            background-color: #218838;
-        }
         .result-box {
             margin-top: 20px;
             padding: 15px;
@@ -69,70 +55,51 @@
             border-radius: 6px;
             display: none;
         }
-        .result-box p {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #155724;
-            font-weight: bold;
-        }
-        .copy-btn {
-            background-color: #007bff;
-            margin-top: 5px;
-        }
-        .copy-btn:hover {
-            background-color: #0069d9;
-        }
+        .copy-btn { background-color: #007bff; margin-top: 8px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🔗 Генератор персональных ссылок</h2>
+    <h2>🔗 Генератор ссылок</h2>
     
     <div class="form-group">
-        <label for="clientName">Имя клиента или название компании:</label>
-        <input type="text" id="clientName" placeholder="Например: ТОО Агро-Инвест">
+        <label for="clientName">Имя клиента / Компания:</label>
+        <input type="text" id="clientName" placeholder="Введите имя...">
     </div>
 
-    <button type="button" id="makeBtn">Сформировать ссылку</button>
+    <button onclick="buildLink()">Сформировать ссылку</button>
 
     <div class="result-box" id="resultBox">
-        <p>Готовая персональная ссылка:</p>
+        <label for="generatedUrl">Готовая ссылка:</label>
         <input type="text" id="generatedUrl" readonly>
-        <button type="button" class="copy-btn" id="copyBtn">📋 Скопировать ссылку</button>
+        <button class="copy-btn" onclick="copyResult()" id="copyBtn">📋 Скопировать ссылку</button>
     </div>
 </div>
 
 <script>
-    var BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
-
-    document.getElementById('makeBtn').onclick = function() {
-        var clientInput = document.getElementById('clientName').value.trim();
-        if (!clientInput) {
-            alert('Пожалуйста, введите имя клиента');
+    function buildLink() {
+        var input = document.getElementById('clientName').value;
+        if (!input || input.trim() === '') {
+            alert('Введите имя клиента');
             return;
         }
-
-        var randomId = Math.floor(100000 + Math.random() * 900000);
-        var finalUrl = BASE_URL + "?client=" + encodeURIComponent(clientInput) + "&id=" + randomId;
-
-        document.getElementById('generatedUrl').value = finalUrl;
+        var cleanName = input.trim();
+        var randomNum = Math.floor(Math.random() * 899999) + 100000;
+        var url = 'https://roptoomamyr-sudo.github.io/hangar-bot/?client=' + encodeURIComponent(cleanName) + '&id=' + randomNum;
+        
+        document.getElementById('generatedUrl').value = url;
         document.getElementById('resultBox').style.display = 'block';
         document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
-    };
+    }
 
-    document.getElementById('copyBtn').onclick = function() {
-        var urlInput = document.getElementById('generatedUrl');
-        urlInput.select();
-        urlInput.setSelectionRange(0, 99999);
-
-        try {
-            document.execCommand('copy');
-            document.getElementById('copyBtn').innerText = '✅ Ссылка скопирована!';
-        } catch (err) {
-            alert('Скопируйте ссылку вручную из поля выше');
-        }
-    };
+    function copyResult() {
+        var field = document.getElementById('generatedUrl');
+        field.select();
+        field.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(field.value);
+        document.getElementById('copyBtn').innerText = '✅ Скопировано!';
+    }
 </script>
 
 </body>
