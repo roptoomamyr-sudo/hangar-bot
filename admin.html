@@ -38,19 +38,20 @@
 
 <script>
     const BIN_ID = "6ac4cb26ffd5d16053522bbd";
-    const SECRET_KEY = "$2a$10$gLNA4lXYIi10v3KeLV15QuKTlg8z.BpTjcw4If6oqraj4MjoMls4K"; 
+    const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
     async function createLink() {
-        const client = document.getElementById('clientName').value.trim();
+        const clientInput = document.getElementById('clientName');
+        const client = clientInput ? clientInput.value.trim() : "";
         const status = document.getElementById('statusMsg');
+        const btn = document.getElementById('genBtn');
         
         if (!client) { 
             alert('Введите имя клиента'); 
             return; 
         }
 
-        const btn = document.getElementById('genBtn');
         btn.disabled = true;
         btn.innerText = "Создание ссылки...";
         status.style.color = "#007bff";
@@ -59,12 +60,12 @@
         const linkId = "id_" + Math.floor(Math.random() * 899999 + 100000);
 
         try {
-            const res = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
-                headers: { "X-Access-Key": SECRET_KEY }
+            const res = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", {
+                headers: { "X-Master-Key": SECRET_KEY }
             });
 
             if (!res.ok) {
-                throw new Error("Ошибка доступа (" + res.status + ")");
+                throw new Error("Ошибка базы данных (" + res.status + ")");
             }
 
             const data = await res.json();
@@ -72,20 +73,20 @@
 
             currentDb[linkId] = { client: client, used: false };
 
-            const putRes = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
+            const putRes = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Access-Key": SECRET_KEY
+                    "X-Master-Key": SECRET_KEY
                 },
                 body: JSON.stringify(currentDb)
             });
 
             if (!putRes.ok) {
-                throw new Error("Не удалось сохранить ссылку");
+                throw new Error("Ошибка сохранения");
             }
 
-            const finalUrl = ${BASE_URL}?client=${encodeURIComponent(client)}&id=${linkId};
+            const finalUrl = BASE_URL + "?client=" + encodeURIComponent(client) + "&id=" + linkId;
             document.getElementById('generatedUrl').value = finalUrl;
             document.getElementById('resultBox').style.display = 'block';
             document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
