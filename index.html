@@ -5,82 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Расчёт стоимости ангара</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 550px;
-            width: 100%;
-            padding: 25px;
-            box-sizing: border-box;
-        }
-        h2 {
-            margin-top: 0;
-            color: #333;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 15px;
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .checkbox-group input {
-            width: auto;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #eef7ee;
-            border: 1px solid #c3e6cb;
-            border-radius: 6px;
-            color: #155724;
-            font-size: 18px;
-            text-align: center;
-            font-weight: bold;
-            line-height: 1.5;
-        }
-        .error-screen {
-            text-align: center;
-            padding: 40px 20px;
-            color: #721c24;
-            background-color: #f8d7da;
-            border-radius: 12px;
-            border: 1px solid #f5c6cb;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 550px; width: 100%; padding: 25px; box-sizing: border-box; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .checkbox-group input { width: auto; }
+        .result { margin-top: 20px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; color: #155724; font-size: 18px; text-align: center; font-weight: bold; line-height: 1.5; }
+        .error-screen { text-align: center; padding: 40px 20px; color: #721c24; background-color: #f8d7da; border-radius: 12px; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>
 
 <div id="app" class="card">
-    <div id="calculator">
+    <div id="loading" style="text-align: center; font-weight: bold; padding: 20px;">Проверка одноразовой ссылки...</div>
+
+    <div id="calculator" style="display: none;">
         <h2>📐 Калькулятор стоимости ангара</h2>
         <p id="welcome-client" style="text-align: center; color: #007bff; font-weight: bold;"></p>
         
@@ -131,18 +73,20 @@
             </div>
         </div>
 
-        <div class="result" id="total-price">
-            Загрузка расчёта...
-        </div>
+        <div class="result" id="total-price">Загрузка расчёта...</div>
     </div>
 
     <div id="error-box" class="error-screen" style="display: none;">
-        <h2 id="error-title">Доступ ограничен</h2>
-        <p id="error-message">Эта персональная ссылка уже была использована ранее.</p>
+        <h2>Доступ ограничен</h2>
+        <p>Эта персональная ссылка уже была использована ранее или не существует.</p>
     </div>
 </div>
 
 <script>
+    const BIN_ID = "6ac4cb26ffd5d16053522bbd";
+    // Вставте сюда ТОТ ЖЕ САМЫЙ X-ACCESS-KEY:
+    const SECRET_KEY = "ВАШ_НОВЫЙ_X_ACCESS_KEY";
+
     function calculate() {
         const shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
         const width = parseFloat(document.getElementById('width').value) || 0;
@@ -151,16 +95,10 @@
 
         const area = width * length;
         let pricePerMeter = basePricePerMeter * shapeCoeff;
-        
-        if (document.getElementById('foundation').checked) {
-            pricePerMeter += 5000;
-        }
+        if (document.getElementById('foundation').checked) pricePerMeter += 5000;
 
         let total = area * pricePerMeter;
-
-        if (document.getElementById('gates').checked) {
-            total += 250000;
-        }
+        if (document.getElementById('gates').checked) total += 250000;
 
         document.getElementById('total-price').innerHTML = `
             Площадь: <b>${area} м²</b><br>
@@ -168,31 +106,57 @@
         `;
     }
 
-    function initPage() {
+    async function verifyAndBurnToken() {
         const urlParams = new URLSearchParams(window.location.search);
+        const linkId = urlParams.get('id');
         const client = urlParams.get('client');
-        const linkId = urlParams.get('id') || client;
 
-        // Если есть идентификатор ссылки, проверяем, не открывали ли ее ранее на этом устройстве
-        if (linkId) {
-            const visitedKey = 'visited_' + linkId;
-            if (localStorage.getItem(visitedKey)) {
-                document.getElementById('calculator').style.display = 'none';
-                document.getElementById('error-box').style.display = 'block';
+        if (!linkId) {
+            showError();
+            return;
+        }
+
+        try {
+            const res = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
+                headers: { "X-Access-Key": SECRET_KEY }
+            });
+            const data = await res.json();
+            const db = data.record || {};
+
+            if (!db[linkId] || db[linkId].used === true) {
+                showError();
                 return;
             }
-            // Отмечаем ссылку как использованную
-            localStorage.setItem(visitedKey, 'true');
-        }
 
-        if (client) {
-            document.getElementById('welcome-client').innerText = Расчёт для: ${decodeURIComponent(client)};
-        }
+            db[linkId].used = true;
 
-        calculate();
+            await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Access-Key": SECRET_KEY
+                },
+                body: JSON.stringify(db)
+            });
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('calculator').style.display = 'block';
+            if (client) {
+                document.getElementById('welcome-client').innerText = Расчёт для: ${decodeURIComponent(client)};
+            }
+            calculate();
+
+        } catch (err) {
+            showError();
+        }
     }
 
-    initPage();
+    function showError() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-box').style.display = 'block';
+    }
+
+    verifyAndBurnToken();
 </script>
 
 </body>
