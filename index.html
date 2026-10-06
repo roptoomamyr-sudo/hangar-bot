@@ -6,15 +6,16 @@
     <title>Расчёт стоимости ангара</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 550px; width: 100%; padding: 25px; box-sizing: border-box; }
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 650px; width: 100%; padding: 25px; box-sizing: border-box; }
         h2 { margin-top: 0; color: #333; text-align: center; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
         .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .checkbox-group input { width: auto; }
-        .result { margin-top: 20px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; color: #155724; font-size: 18px; text-align: center; font-weight: bold; line-height: 1.5; }
+        .result { margin-top: 20px; padding: 20px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 8px; color: #155724; font-size: 18px; text-align: center; font-weight: bold; line-height: 1.6; }
         .error-screen { text-align: center; padding: 40px 20px; color: #721c24; background-color: #f8d7da; border-radius: 12px; border: 1px solid #f5c6cb; }
+        .section-title { font-weight: bold; margin-top: 15px; margin-bottom: 10px; border-bottom: 2px solid #007bff; padding-bottom: 5px; color: #007bff; }
     </style>
 </head>
 <body>
@@ -25,53 +26,68 @@
     </div>
 
     <div id="calculator" style="display: none;">
-        <h2>📐 Калькулятор стоимости ангара</h2>
+        <h2>📐 Расчёт стоимости ангара</h2>
         <p id="welcome-client" style="text-align: center; color: #007bff; font-weight: bold;"></p>
         
+        <div class="section-title">1. Параметры здания</div>
         <div class="form-group">
-            <label for="shape">Тип конструкции:</label>
-            <select id="shape" onchange="calculate()">
-                <option value="1.0">Арочный ангар</option>
-                <option value="1.2">Прямостенный ангар (+20%)</option>
-                <option value="1.15">Шатровый ангар (+15%)</option>
-                <option value="1.25">Полигональный ангар (+25%)</option>
+            <label for="type">Тип конструкции и покрытия:</label>
+            <select id="type" onchange="toggleWallHeight(); calculate();">
+                <option value="arch_tent">Арочный (Тент ПВХ)</option>
+                <option value="straight_tent">Прямостеный арочный (Тент ПВХ)</option>
+                <option value="straight_prof">Прямостеный двускатный (Профлист)</option>
             </select>
         </div>
 
         <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
                 <label for="width">Ширина (м):</label>
-                <input type="number" id="width" value="12" min="1" oninput="calculate()">
+                <input type="number" id="width" value="12" min="10" max="30" oninput="calculate()">
             </div>
             <div class="form-group" style="flex: 1;">
                 <label for="length">Длина (м):</label>
                 <input type="number" id="length" value="30" min="1" oninput="calculate()">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label for="height">Высота (м):</label>
-                <input type="number" id="height" value="6" min="1" oninput="calculate()">
+            <div class="form-group" id="wall-height-box" style="flex: 1; display: none;">
+                <label for="wallHeight">Высота стены (м):</label>
+                <input type="number" id="wallHeight" value="3" min="3" max="10" oninput="calculate()">
             </div>
         </div>
 
+        <div class="section-title">2. Монтаж и доставка</div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="montage" checked onchange="calculate()">
+            <label for="montage">Включить монтаж строительной бригады</label>
+        </div>
         <div class="form-group">
-            <label for="type">Тип обшивки и утепления:</label>
-            <select id="type" onchange="calculate()">
-                <option value="15000">Холодный (Профлист) — 15 000 ₸/м²</option>
-                <option value="22000">Утеплённый (Профлист + Минвата) — 22 000 ₸/м²</option>
-                <option value="30000">Тёплый (Сэндвич-панели 100мм) — 30 000 ₸/м²</option>
-                <option value="38000">Тёплый (Сэндвич-панели 150мм) — 38 000 ₸/м²</option>
+            <label for="distance">Расстояние доставки от г. Костанай (км):</label>
+            <input type="number" id="distance" value="0" min="0" oninput="calculate()">
+        </div>
+
+        <div class="section-title">3. Ворота</div>
+        <div class="form-group">
+            <label for="gates">Размер распашных ворот:</label>
+            <select id="gates" onchange="calculate()">
+                <option value="none">Без ворот</option>
+                <option value="3x3">Ворота 3 × 3 м</option>
+                <option value="4x4" selected>Ворота 4 × 4 м</option>
+                <option value="5x5">Ворота 5 × 5 м</option>
             </select>
         </div>
 
-        <div class="form-group">
-            <label>Дополнительно:</label>
-            <div class="checkbox-group">
-                <input type="checkbox" id="foundation" onchange="calculate()">
-                <label for="foundation">Заливка фундамента (+5 000 ₸/м²)</label>
+        <div class="section-title">4. Фундамент</div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="useFoundation" onchange="toggleFoundationInputs(); calculate();">
+            <label for="useFoundation">Требуется расчет фундамента</label>
+        </div>
+        <div id="foundation-inputs" style="display: none; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label for="foundWidth">Ширина ленты (м):</label>
+                <input type="number" id="foundWidth" value="0.4" step="0.1" min="0.1" oninput="calculate()">
             </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="gates" checked onchange="calculate()">
-                <label for="gates">Ворота распашные (250 000 ₸)</label>
+            <div class="form-group" style="flex: 1;">
+                <label for="foundHeight">Высота ленты (м):</label>
+                <input type="number" id="foundHeight" value="0.6" step="0.1" min="0.1" oninput="calculate()">
             </div>
         </div>
 
@@ -86,24 +102,109 @@
 
 <script>
     var BIN_ID = "6ac4cb26ffd5d16053522bbd";
-    var SECRET_KEY = "$2a$10$IMgqPeq6EGMUWkoPpesa5.NXtCKi6SpV9oE.H/hRWRVC9gheuz1WO";
+    var SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
+    var NDS_RATE = 1.16; // НДС 16%
+
+    function toggleWallHeight() {
+        var type = document.getElementById('type').value;
+        var box = document.getElementById('wall-height-box');
+        if (type === 'straight_tent') {
+            box.style.display = 'block';
+            document.getElementById('wallHeight').value = 3;
+        } else if (type === 'straight_prof') {
+            box.style.display = 'block';
+            document.getElementById('wallHeight').value = 4;
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function toggleFoundationInputs() {
+        var checked = document.getElementById('useFoundation').checked;
+        document.getElementById('foundation-inputs').style.display = checked ? 'flex' : 'none';
+    }
 
     function calculate() {
-        var shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
+        var type = document.getElementById('type').value;
         var width = parseFloat(document.getElementById('width').value) || 0;
         var length = parseFloat(document.getElementById('length').value) || 0;
-        var basePricePerMeter = parseFloat(document.getElementById('type').value) || 0;
-
+        var wallHeight = parseFloat(document.getElementById('wallHeight').value) || 0;
         var area = width * length;
-        var pricePerMeter = basePricePerMeter * shapeCoeff;
-        if (document.getElementById('foundation').checked) pricePerMeter += 5000;
 
-        var total = area * pricePerMeter;
-        if (document.getElementById('gates').checked) total += 250000;
+        var pricePerMeterBase = 0;
+        var isTent = true;
+
+        // 1. Расчет базовой цены за м² конструкции
+        if (type === 'arch_tent') {
+            isTent = true;
+            if (width >= 10 && width <= 13) pricePerMeterBase = 17000;
+            else if (width >= 14 && width <= 16) pricePerMeterBase = 19000;
+            else if (width >= 17 && width <= 27) pricePerMeterBase = 22000;
+            else pricePerMeterBase = 22000;
+        } else if (type === 'straight_tent') {
+            isTent = true;
+            if (width >= 10 && width <= 13) pricePerMeterBase = 19000;
+            else if (width >= 14 && width <= 30) pricePerMeterBase = 25000;
+            else pricePerMeterBase = 25000;
+        } else if (type === 'straight_prof') {
+            isTent = false;
+            if (width >= 10 && width <= 13) pricePerMeterBase = 23000;
+            else if (width >= 14 && width <= 30) pricePerMeterBase = 26000;
+            else pricePerMeterBase = 26000;
+        }
+
+        var constrCostNoNDS = area * pricePerMeterBase;
+
+        // Наценка 3% за каждый метр высоты стены сверх нормы
+        if (type === 'straight_tent' && wallHeight > 3) {
+            constrCostNoNDS += constrCostNoNDS * ((wallHeight - 3) * 0.03);
+        } else if (type === 'straight_prof' && wallHeight > 4) {
+            constrCostNoNDS += constrCostNoNDS * ((wallHeight - 4) * 0.03);
+        }
+
+        // 2. Расчет монтажа
+        var montageCostNoNDS = 0;
+        if (document.getElementById('montage').checked) {
+            montageCostNoNDS = constrCostNoNDS * (isTent ? 0.18 : 0.23);
+        }
+
+        // 3. Расчет доставки
+        var distance = parseFloat(document.getElementById('distance').value) || 0;
+        var deliveryCostNoNDS = distance * 1000;
+
+        // 4. Расчет ворот (уже с НДС)
+        var gateVal = document.getElementById('gates').value;
+        var gatesCostWithNDS = 0;
+        if (gateVal === '3x3') gatesCostWithNDS = 600000;
+        else if (gateVal === '4x4') gatesCostWithNDS = 700000;
+        else if (gateVal === '5x5') gatesCostWithNDS = 800000;
+
+        // 5. Расчет фундамента
+        var foundationCostNoNDS = 0;
+        var totalCubes = 0;
+        if (document.getElementById('useFoundation').checked) {
+            var fW = parseFloat(document.getElementById('foundWidth').value) || 0.4;
+            var fH = parseFloat(document.getElementById('foundHeight').value) || 0.6;
+
+            var perimeter = 2 * (width + length);
+            var tapeCubes = perimeter * fW * fH;
+            var blindAreaCubes = perimeter * 1.0 * 0.1;
+
+            var supportsCount = Math.floor(length / 3) * 2 + 8;
+            var pilesCubes = supportsCount * 0.25;
+
+            totalCubes = tapeCubes + blindAreaCubes + pilesCubes;
+            foundationCostNoNDS = totalCubes * 135000;
+        }
+
+        // Применение НДС 16% ко всем статьям без НДС
+        var totalNoNDS = constrCostNoNDS + montageCostNoNDS + deliveryCostNoNDS + foundationCostNoNDS;
+        var totalFinal = (totalNoNDS * NDS_RATE) + gatesCostWithNDS;
 
         document.getElementById('total-price').innerHTML = 
-            'Площадь: <b>' + area + ' м²</b><br>' +
-            'Ориентировочная стоимость: <b>' + Math.round(total).toLocaleString('ru-RU') + ' ₸</b>';
+            'Площадь ангара: <b>' + area + ' м²</b><br>' +
+            (totalCubes > 0 ? 'Объём фундамента: <b>' + totalCubes.toFixed(2) + ' м³</b><br>' : '') +
+            'Итоговая стоимость: <br><span style="font-size: 24px; color: #007bff;"><b>' + Math.round(totalFinal).toLocaleString('ru-RU') + ' ₸</b></span>';
     }
 
     function showError(msg) {
@@ -144,7 +245,6 @@
                     return;
                 }
 
-                // Помечаем ссылку как использованную
                 db[linkId].used = true;
 
                 var xhrPut = new XMLHttpRequest();
