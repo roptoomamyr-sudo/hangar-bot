@@ -57,14 +57,12 @@ async def check_token_handler(request):
         "Access-Control-Allow-Headers": "Content-Type"
     }
 
-    # Быстрый ответ на предзапрос браузера (CORS / OPTIONS)
     if request.method == "OPTIONS":
         return web.Response(status=200, headers=headers)
     
     token = request.query.get("token")
     user_agent = request.headers.get("User-Agent", "").lower()
 
-    # Игнорируем авто-просмотры мессенджеров (превью)
     is_bot = any(b in user_agent for b in ["whatsapp", "telegram", "facebookexternalhit", "twitterbot", "meta-externalagent"])
     if is_bot:
         return web.json_response({"status": "preview_ignored"}, headers=headers)
@@ -92,7 +90,8 @@ async def main():
     
     app = web.Application()
     app.router.add_get("/", health_check)
-    app.router.add_route("*", "/api/check-token", check_token_handler)
+    app.router.add_get("/api/check-token", check_token_handler)
+    app.router.add_options("/api/check-token", check_token_handler)
     
     port = int(os.environ.get("PORT", 10000))
     runner = web.AppRunner(app)
