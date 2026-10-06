@@ -70,11 +70,7 @@
 <body>
 
 <div id="app" class="card">
-    <div id="loader" style="text-align: center; padding: 20px;">
-        <h3>Проверка доступа...</h3>
-    </div>
-
-    <div id="calculator" style="display: none;">
+    <div id="calculator">
         <h2>📐 Калькулятор стоимости ангара</h2>
         <p id="welcome-client" style="text-align: center; color: #007bff; font-weight: bold;"></p>
         
@@ -103,7 +99,7 @@
 
     <div id="error-box" class="error-screen" style="display: none;">
         <h2 id="error-title">Ошибка доступа</h2>
-        <p id="error-message">Ссылка недействительна или устарела.</p>
+        <p id="error-message">Эта ссылка уже была использована ранее.</p>
     </div>
 </div>
 
@@ -121,65 +117,32 @@
         document.getElementById('total-price').innerText = Площадь: ${area} м²\nИтого: ${total.toLocaleString('ru-RU')} ₸;
     }
 
-    async function checkToken() {
+    async function checkTokenAsync() {
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
 
-        const loader = document.getElementById('loader');
-        const calc = document.getElementById('calculator');
-        const errorBox = document.getElementById('error-box');
-        const errorMsg = document.getElementById('error-message');
-
-        if (!token) {
-            loader.style.display = 'none';
-            errorBox.style.display = 'block';
-            errorMsg.innerText = 'Доступ запрещён. Перейдите по персональной ссылке из сообщений.';
-            return;
-        }
-
-        // Тайм-аут 1.5 сек
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            controller.abort();
-            loader.style.display = 'none';
-            calc.style.display = 'block';
-            calculate();
-        }, 1500);
+        if (!token) return;
 
         try {
-            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token}, { 
-                method: 'GET',
-                signal: controller.signal 
-            });
-            clearTimeout(timeoutId);
+            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token});
             const data = await response.json();
 
-            if (data.status === 'used') {
-                calc.style.display = 'none';
-                loader.style.display = 'none';
-                errorBox.style.display = 'block';
-                errorMsg.innerText = '⛔ Эта ссылка уже была использована ранее. Запросите новую ссылку у менеджера.';
-            } else if (data.status === 'invalid') {
-                calc.style.display = 'none';
-                loader.style.display = 'none';
-                errorBox.style.display = 'block';
-                errorMsg.innerText = '⚠️ Недействительная или устаревшая ссылка.';
-            } else {
-                loader.style.display = 'none';
-                calc.style.display = 'block';
-                if (data.client) {
-                    document.getElementById('welcome-client').innerText = Расчёт для: ${data.client};
-                }
-                calculate();
+            if (data.status === 'used' || data.status === 'invalid') {
+                document.getElementById('calculator').style.display = 'none';
+                document.getElementById('error-box').style.display = 'block';
+            } else if (data.status === 'valid' && data.client) {
+                document.getElementById('welcome-client').innerText = Расчёт для: ${data.client};
             }
         } catch (err) {
-            loader.style.display = 'none';
-            calc.style.display = 'block';
-            calculate();
+            console.log('Фоновая проверка выполняется...');
         }
     }
 
-    checkToken();
+    // Калькулятор сходу открывается и считает
+    calculate();
+
+    // Проверка ссылки параллельно в фоновом режиме
+    checkTokenAsync();
 </script>
 
 </body>
