@@ -1,4 +1,4 @@
-﻿mport logging
+﻿import logging
 import uuid
 import asyncio
 import os
@@ -6,8 +6,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiohttp import web
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw")
-ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "5303673207"))
+BOT_TOKEN = "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw"
+ADMIN_CHAT_ID = 5303673207
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
