@@ -20,7 +20,9 @@
 <body>
 
 <div id="app" class="card">
-    <div id="loading" style="text-align: center; font-weight: bold; padding: 20px;">Проверка одноразовой ссылки...</div>
+    <div id="loading" style="text-align: center; font-weight: bold; padding: 20px; color: #007bff;">
+        Проверка одноразовой ссылки...
+    </div>
 
     <div id="calculator" style="display: none;">
         <h2>📐 Калькулятор стоимости ангара</h2>
@@ -78,14 +80,13 @@
 
     <div id="error-box" class="error-screen" style="display: none;">
         <h2>Доступ ограничен</h2>
-        <p>Эта персональная ссылка уже была использована ранее или не существует.</p>
+        <p id="error-text">Эта персональная ссылка уже была использована ранее или не существует.</p>
     </div>
 </div>
 
 <script>
     const BIN_ID = "6ac4cb26ffd5d16053522bbd";
-    
-    const SECRET_KEY = "$2a$10$ETfq9lcIKhi/7dOtrrjPWu8eJH3wm2B5SokYW582PU5uhcITmFu92";
+    const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
 
     function calculate() {
         const shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
@@ -112,29 +113,42 @@
         const client = urlParams.get('client');
 
         if (!linkId) {
-            showError();
+            showError("Ссылка не содержит идентификатора доступа.");
             return;
         }
 
+        // Автоматический отмена запроса через 5 секунд, если база зависла
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         try {
-            const res = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
-                headers: { "X-Access-Key": SECRET_KEY }
+            const res = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", {
+                headers: { "X-Master-Key": SECRET_KEY },
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                showError("Ошибка авторизации базы данных (" + res.status + ")");
+                return;
+            }
+
             const data = await res.json();
             const db = data.record || {};
 
             if (!db[linkId] || db[linkId].used === true) {
-                showError();
+                showError("Эта ссылка уже сгорела или не существует.");
                 return;
             }
 
+            // Помечаем ссылку как использованную
             db[linkId].used = true;
 
-            await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
+            await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Access-Key": SECRET_KEY
+                    "X-Master-Key": SECRET_KEY
                 },
                 body: JSON.stringify(db)
             });
@@ -147,13 +161,20 @@
             calculate();
 
         } catch (err) {
-            showError();
+            if (err.name === 'AbortError') {
+                showError("Превышено время ожидания ответа от базы данных.");
+            } else {
+                showError("Ошибка сети: " + err.message);
+            }
         }
     }
 
-    function showError() {
+    function showError(msg) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('error-box').style.display = 'block';
+        if (msg) {
+            document.getElementById('error-text').innerText = msg;
+        }
     }
 
     verifyAndBurnToken();
