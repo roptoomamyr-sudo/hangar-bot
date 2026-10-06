@@ -3,60 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор ссылок</title>
+    <title>Расчёт стоимости ангара</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; width: 100%; padding: 25px; box-sizing: border-box; }
-        h2 { text-align: center; color: #333; margin-top: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 550px; width: 100%; padding: 25px; box-sizing: border-box; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
         .form-group { margin-bottom: 15px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #28a745; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:disabled { background: #94d3a2; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; background: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; display: none; }
-        .copy-btn { background: #007bff; margin-top: 8px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .checkbox-group input { width: auto; }
+        .result { margin-top: 20px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; color: #155724; font-size: 18px; text-align: center; font-weight: bold; line-height: 1.5; }
+        .error-screen { text-align: center; padding: 40px 20px; color: #721c24; background-color: #f8d7da; border-radius: 12px; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>🔗 Генератор 100% одноразовых ссылок</h2>
-    <div class="form-group">
-        <label for="clientName">Имя клиента / Компания:</label>
-        <input type="text" id="clientName" placeholder="Введите имя...">
-    </div>
-    <button onclick="createLink()" id="genBtn">Сформировать ссылку</button>
+<div id="app" class="card">
+    <div id="loading" style="text-align: center; font-weight: bold; padding: 20px;">Проверка одноразовой ссылки...</div>
 
-    <div class="result-box" id="resultBox">
-        <label for="generatedUrl">Готовая одноразовая ссылка:</label>
-        <input type="text" id="generatedUrl" readonly>
-        <button class="copy-btn" onclick="copyLink()" id="copyBtn">📋 Скопировать ссылку</button>
+    <div id="calculator" style="display: none;">
+        <h2>📐 Калькулятор стоимости ангара</h2>
+        <p id="welcome-client" style="text-align: center; color: #007bff; font-weight: bold;"></p>
+        
+        <div class="form-group">
+            <label for="shape">Тип конструкции:</label>
+            <select id="shape" onchange="calculate()">
+                <option value="1.0">Арочный ангар</option>
+                <option value="1.2">Прямостенный ангар (+20%)</option>
+                <option value="1.15">Шатровый ангар (+15%)</option>
+                <option value="1.25">Полигональный ангар (+25%)</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label for="width">Ширина (м):</label>
+                <input type="number" id="width" value="12" min="1" oninput="calculate()">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="length">Длина (м):</label>
+                <input type="number" id="length" value="30" min="1" oninput="calculate()">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="height">Высота (м):</label>
+                <input type="number" id="height" value="6" min="1" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="type">Тип обшивки и утепления:</label>
+            <select id="type" onchange="calculate()">
+                <option value="15000">Холодный (Профлист) — 15 000 ₸/м²</option>
+                <option value="22000">Утеплённый (Профлист + Минвата) — 22 000 ₸/м²</option>
+                <option value="30000">Тёплый (Сэндвич-панели 100мм) — 30 000 ₸/м²</option>
+                <option value="38000">Тёплый (Сэндвич-панели 150мм) — 38 000 ₸/м²</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Дополнительно:</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="foundation" onchange="calculate()">
+                <label for="foundation">Заливка фундамента (+5 000 ₸/м²)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="gates" checked onchange="calculate()">
+                <label for="gates">Ворота распашные (250 000 ₸)</label>
+            </div>
+        </div>
+
+        <div class="result" id="total-price">Загрузка расчёта...</div>
+    </div>
+
+    <div id="error-box" class="error-screen" style="display: none;">
+        <h2>Доступ ограничен</h2>
+        <p>Эта персональная ссылка уже была использована ранее или не существует.</p>
     </div>
 </div>
 
 <script>
     const BIN_ID = "6ac4cb26ffd5d16053522bbd";
     const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
-    const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
-    async function createLink() {
-        const client = document.getElementById('clientName').value.trim();
-        if (!client) { alert('Введите имя клиента'); return; }
+    function calculate() {
+        const shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
+        const width = parseFloat(document.getElementById('width').value) || 0;
+        const length = parseFloat(document.getElementById('length').value) || 0;
+        const basePricePerMeter = parseFloat(document.getElementById('type').value) || 0;
 
-        const btn = document.getElementById('genBtn');
-        btn.disabled = true;
-        btn.innerText = "Создание ссылки...";
+        const area = width * length;
+        let pricePerMeter = basePricePerMeter * shapeCoeff;
+        if (document.getElementById('foundation').checked) pricePerMeter += 5000;
 
-        const linkId = "id_" + Math.floor(Math.random() * 899999 + 100000);
+        let total = area * pricePerMeter;
+        if (document.getElementById('gates').checked) total += 250000;
+
+        document.getElementById('total-price').innerHTML = `
+            Площадь: <b>${area} м²</b><br>
+            Ориентировочная стоимость: <b>${Math.round(total).toLocaleString('ru-RU')} ₸</b>
+        `;
+    }
+
+    async function verifyAndBurnToken() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const linkId = urlParams.get('id');
+        const client = urlParams.get('client');
+
+        if (!linkId) {
+            showError();
+            return;
+        }
 
         try {
             const res = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
                 headers: { "X-Master-Key": SECRET_KEY }
             });
             const data = await res.json();
-            const currentDb = data.record || {};
+            const db = data.record || {};
 
-            currentDb[linkId] = { client: client, used: false };
+            if (!db[linkId] || db[linkId].used === true) {
+                showError();
+                return;
+            }
+
+            // "Сжигаем" ссылку прямо в момент первого захода
+            db[linkId].used = true;
 
             await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
                 method: "PUT",
@@ -64,28 +136,27 @@
                     "Content-Type": "application/json",
                     "X-Master-Key": SECRET_KEY
                 },
-                body: JSON.stringify(currentDb)
+                body: JSON.stringify(db)
             });
 
-            const finalUrl = ${BASE_URL}?client=${encodeURIComponent(client)}&id=${linkId};
-            document.getElementById('generatedUrl').value = finalUrl;
-            document.getElementById('resultBox').style.display = 'block';
-            document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('calculator').style.display = 'block';
+            if (client) {
+                document.getElementById('welcome-client').innerText = Расчёт для: ${decodeURIComponent(client)};
+            }
+            calculate();
 
         } catch (err) {
-            alert('Ошибка при создании ссылки. Попробуйте еще раз.');
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Сформировать ссылку";
+            showError();
         }
     }
 
-    function copyLink() {
-        const field = document.getElementById('generatedUrl');
-        field.select();
-        navigator.clipboard.writeText(field.value);
-        document.getElementById('copyBtn').innerText = '✅ Скопировано!';
+    function showError() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-box').style.display = 'block';
     }
+
+    verifyAndBurnToken();
 </script>
 
 </body>
