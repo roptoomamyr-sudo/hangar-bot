@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -108,7 +108,6 @@
 </div>
 
 <script>
-    // URL вашего бэкенд-сервера на Render
     const RENDER_SERVER = "https://hangar-bot-jxwb.onrender.com"; 
 
     function calculate() {
@@ -138,8 +137,18 @@
             return;
         }
 
+        // Тайм-аут 3 секунды: если Render еще не проснулся, откроем калькулятор сразу
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+            loader.style.display = 'none';
+            calc.style.display = 'block';
+            calculate();
+        }, 3000);
+
         try {
-            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token});
+            const response = await fetch(${RENDER_SERVER}/api/check-token?token=${token}, { signal: controller.signal });
+            clearTimeout(timeoutId);
             const data = await response.json();
 
             loader.style.display = 'none';
@@ -151,16 +160,18 @@
                 }
                 calculate();
             } else if (data.status === 'used') {
+                calc.style.display = 'none';
                 errorBox.style.display = 'block';
                 errorMsg.innerText = '⛔ Эта ссылка уже была использована ранее. Запросите новую ссылку у менеджера.';
-            } else {
+            } else if (data.status === 'invalid') {
+                calc.style.display = 'none';
                 errorBox.style.display = 'block';
                 errorMsg.innerText = '⚠️ Недействительная или устаревшая ссылка.';
             }
         } catch (err) {
-            console.error('Ошибка связи с сервером:', err);
+            console.log('Сервер загружается, покатываем калькулятор по умолчанию');
             loader.style.display = 'none';
-            calc.style.display = 'block'; // Резервный показ при сбое сервера
+            calc.style.display = 'block';
             calculate();
         }
     }
