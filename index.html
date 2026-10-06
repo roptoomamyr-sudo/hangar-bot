@@ -1,0 +1,399 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор ангаров</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 12px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        h2, h3 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+        .row .form-group {
+            flex: 1;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+        }
+        .btn-secondary {
+            background-color: #64748b;
+        }
+        .result-box {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .result-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e3a8a;
+            border-top: 2px solid #bfdbfe;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .foundation-params {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .note {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .link-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            word-break: break-all;
+        }
+        .link-input {
+            background: #ffffff;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Панель Менеджера -->
+    <div id="screenManager" class="card">
+        <h2>Панель менеджера: Генерация ссылки для клиента</h2>
+        <div class="form-group">
+            <label>Имя или компания клиента:</label>
+            <input type="text" id="mClientName" placeholder="Например: ТОО Агро-Инвест">
+        </div>
+        
+        <div class="row">
+            <div class="form-group">
+                <label>Ширина (м):</label>
+                <input type="number" id="mWidth" value="15">
+            </div>
+            <div class="form-group">
+                <label>Длина (м):</label>
+                <input type="number" id="mLength" value="51">
+            </div>
+        </div>
+
+        <button type="button" class="btn" onclick="generateClientLink()">Сгенерировать ссылку для WhatsApp</button>
+
+        <div id="generatedResult" class="link-box" style="display: none;">
+            <strong>Ссылка для клиента готова:</strong>
+            <input type="text" id="clientLinkInput" class="link-input" readonly onclick="this.select()">
+            <br><br>
+            <button class="btn btn-secondary" onclick="copyClientLink()">Скопировать ссылку</button>
+        </div>
+    </div>
+
+    <!-- Экран Калькулятора Клиента -->
+    <div id="screenCalc" class="card" style="display: none;">
+        <h2 id="clientHeaderTitle">Персональный расчёт ангара</h2>
+        <div class="note">* Все цены указаны с НДС 16%</div>
+
+        <div class="form-group">
+            <label>Тип ангара:</label>
+            <select id="type" onchange="calculate()">
+                <option value="arch_tent">Арочный холодный (Тент ПВХ)</option>
+                <option value="straight_tent">Прямостеный тент (от 3м)</option>
+                <option value="straight_prof">Прямостеный профлист (от 4м)</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>Ширина (м):</label>
+                <input type="number" id="width" value="15" oninput="calculate()">
+            </div>
+            <div class="form-group">
+                <label>Длина (м):</label>
+                <input type="number" id="length" value="51" oninput="calculate()">
+            </div>
+            <div class="form-group">
+                <label>Высота (м):</label>
+                <input type="number" id="height" value="3" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="useFoundation" checked onchange="toggleFoundation()">
+                <label style="margin:0;">Фундамент (Лента + Сваи + Отмостка)</label>
+            </div>
+            <div id="foundationBlock" class="foundation-params">
+                <div class="row">
+                    <div class="form-group">
+                        <label>Ширина ленты (м):</label>
+                        <input type="number" id="fWidth" value="0.4" step="0.05" oninput="calculate()">
+                    </div>
+                    <div class="form-group">
+                        <label>Высота ленты (м):</label>
+                        <input type="number" id="fHeight" value="1.2" step="0.05" oninput="calculate()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="useMontage" checked onchange="calculate()">
+            <label style="margin:0;">Монтаж бригады</label>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>Ворота:</label>
+                <select id="gateType" onchange="calculate()">
+                    <option value="0">Без ворот</option>
+                    <option value="600000">3x3 м (600к ₸)</option>
+                    <option value="700000" selected>4x4 м (700к ₸)</option>
+                    <option value="800000">5x5 м (800к ₸)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Кол-во:</label>
+                <input type="number" id="gateCount" value="2" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Доставка (км от Костаная):</label>
+            <input type="number" id="distance" value="0" oninput="calculate()">
+        </div>
+
+        <div class="result-box">
+            <h3>Итоговый расчёт стоимости (с НДС 16%)</h3>
+            <div class="result-item">
+                <span>Площадь:</span>
+                <span id="resArea">0 м²</span>
+            </div>
+            <div class="result-item">
+                <span>Каркас и обшивка:</span>
+                <span id="resHangPrice">0 ₸</span>
+            </div>
+            <div class="result-item" id="montageRow">
+                <span>Монтаж (<span id="resMontagePercent">0</span>%):</span>
+                <span id="resMontagePrice">0 ₸</span>
+            </div>
+            <div class="result-item" id="foundRow">
+                <span>Фундамент (<span id="resCubature">0</span> м³):</span>
+                <span id="resFoundPrice">0 ₸</span>
+            </div>
+            <div class="result-item">
+                <span>Доставка:</span>
+                <span id="resDelivery">0 ₸</span>
+            </div>
+            <div class="result-item">
+                <span>Ворота:</span>
+                <span id="resGates">0 ₸</span>
+            </div>
+            <div class="result-total">
+                <span>ИТОГО С НДС:</span>
+                <span id="resTotal">0 ₸</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+var VAT_MULTIPLIER = 1.16;
+
+window.onload = function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var client = urlParams.get('client');
+    var w = urlParams.get('w');
+    var l = urlParams.get('l');
+
+    if (client || w || l) {
+        // Режим КЛИЕНТА (Скрываем панель менеджера без возможности возврата)
+        document.getElementById("screenManager").style.display = "none";
+        document.getElementById("screenCalc").style.display = "block";
+
+        if (client) {
+            document.getElementById("clientHeaderTitle").innerText = "Расчёт ангара для: " + decodeURIComponent(client);
+        }
+        if (w) document.getElementById("width").value = w;
+        if (l) document.getElementById("length").value = l;
+
+        calculate();
+    } else {
+        // Режим МЕНЕДЖЕРА
+        document.getElementById("screenManager").style.display = "block";
+    }
+};
+
+function generateClientLink() {
+    var clientName = document.getElementById("mClientName").value.trim() || 'Клиент';
+    var w = document.getElementById("mWidth").value || '15';
+    var l = document.getElementById("mLength").value || '51';
+
+    var baseUrl = window.location.href.split("?")[0];
+    var fullUrl = baseUrl + "?client=" + encodeURIComponent(clientName) + "&w=" + w + "&l=" + l;
+
+    document.getElementById("clientLinkInput").value = fullUrl;
+    document.getElementById("generatedResult").style.display = "block";
+}
+
+function copyClientLink() {
+    var input = document.getElementById("clientLinkInput");
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    alert('Ссылка скопирована! Можете отправлять в WhatsApp.');
+}
+
+function toggleFoundation() {
+    document.getElementById("foundationBlock").style.display = document.getElementById("useFoundation").checked ? "block" : "none";
+    calculate();
+}
+
+function calculate() {
+    var type = document.getElementById("type").value;
+    var w = parseFloat(document.getElementById("width").value) || 0;
+    var l = parseFloat(document.getElementById("length").value) || 0;
+    var h = parseFloat(document.getElementById("height").value) || 0;
+    
+    var area = w * l;
+    document.getElementById("resArea").innerText = area + " м²";
+    
+    var basePriceNoVAT = 0, baseHeight = 3, montagePercent = 18;
+    if ("arch_tent" === type) {
+        montagePercent = 18;
+        basePriceNoVAT = (w >= 10 && w <= 13) ? 17000 : ((w >= 14 && w <= 16) ? 19000 : 22000);
+    } else if ("straight_tent" === type) {
+        baseHeight = 3; montagePercent = 18;
+        basePriceNoVAT = (w >= 10 && w <= 13) ? 19000 : 25000;
+    } else if ("straight_prof" === type) {
+        baseHeight = 4; montagePercent = 23;
+        basePriceNoVAT = (w >= 10 && w <= 13) ? 23000 : 26000;
+    }
+    
+    var heightCoeff = 1;
+    if ("arch_tent" !== type && h > baseHeight) {
+        heightCoeff += 0.03 * (h - baseHeight);
+    }
+    
+    var hangarTotalPrice = area * (basePriceNoVAT * VAT_MULTIPLIER) * heightCoeff;
+    document.getElementById("resHangPrice").innerText = Math.round(hangarTotalPrice).toLocaleString() + " ₸";
+    
+    var montagePrice = 0;
+    if (document.getElementById("useMontage").checked) {
+        montagePrice = hangarTotalPrice * (montagePercent / 100);
+        document.getElementById("montageRow").style.display = "flex";
+        document.getElementById("resMontagePercent").innerText = montagePercent;
+        document.getElementById("resMontagePrice").innerText = Math.round(montagePrice).toLocaleString() + " ₸";
+    } else {
+        document.getElementById("montageRow").style.display = "none";
+    }
+    
+    var foundationPrice = 0, totalCubes = 0;
+    if (document.getElementById("useFoundation").checked) {
+        var fW = parseFloat(document.getElementById("fWidth").value) || 0;
+        var fH = parseFloat(document.getElementById("fHeight").value) || 0;
+        var perimeter = 2 * (w + l);
+        var vLenta = perimeter * fW * fH;
+        var vOtmostka = perimeter * 0.1 * 1.0;
+        var totalPiles = 2 * Math.floor(l / 3) + 8;
+        totalCubes = vLenta + vOtmostka + (0.25 * totalPiles);
+        foundationPrice = totalCubes * (135000 * VAT_MULTIPLIER);
+        
+        document.getElementById("foundRow").style.display = "flex";
+        document.getElementById("resCubature").innerText = totalCubes.toFixed(2);
+        document.getElementById("resFoundPrice").innerText = Math.round(foundationPrice).toLocaleString() + " ₸";
+    } else {
+        document.getElementById("foundRow").style.display = "none";
+    }
+    
+    var deliveryPrice = (parseFloat(document.getElementById("distance").value) || 0) * 1000 * VAT_MULTIPLIER;
+    document.getElementById("resDelivery").innerText = Math.round(deliveryPrice).toLocaleString() + " ₸";
+    
+    var totalGates = (parseFloat(document.getElementById("gateType").value) || 0) * (parseInt(document.getElementById("gateCount").value) || 0);
+    document.getElementById("resGates").innerText = totalGates.toLocaleString() + " ₸";
+    
+    var grandTotal = hangarTotalPrice + montagePrice + foundationPrice + deliveryPrice + totalGates;
+    document.getElementById("resTotal").innerText = Math.round(grandTotal).toLocaleString() + " ₸";
+}
+</script>
+
+</body>
+</html>
