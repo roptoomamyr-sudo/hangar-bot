@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiohttp import web
 
-BOT_TOKEN = "8572741655:AAHwN21W7nlgEVdbE6s-tYAaQxhoOBTQaHo"
+BOT_TOKEN = "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw"
 ADMIN_CHAT_ID = 5303673207
 SITE_DOMAIN = "https://roptoomamyr-sudo.github.io/hangar-bot"
 
@@ -53,13 +53,18 @@ async def generate_link(message: types.Message):
 async def check_token_handler(request):
     headers = {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
+
+    # Быстрый ответ на предзапрос браузера (CORS / OPTIONS)
+    if request.method == "OPTIONS":
+        return web.Response(status=200, headers=headers)
     
     token = request.query.get("token")
     user_agent = request.headers.get("User-Agent", "").lower()
 
+    # Игнорируем авто-просмотры мессенджеров (превью)
     is_bot = any(b in user_agent for b in ["whatsapp", "telegram", "facebookexternalhit", "twitterbot", "meta-externalagent"])
     if is_bot:
         return web.json_response({"status": "preview_ignored"}, headers=headers)
@@ -87,7 +92,7 @@ async def main():
     
     app = web.Application()
     app.router.add_get("/", health_check)
-    app.router.add_get("/api/check-token", check_token_handler)
+    app.router.add_route("*", "/api/check-token", check_token_handler)
     
     port = int(os.environ.get("PORT", 10000))
     runner = web.AppRunner(app)
