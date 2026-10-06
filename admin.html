@@ -91,57 +91,48 @@
     
     <div class="form-group">
         <label for="clientName">Имя клиента или название компании:</label>
-        <input type="text" id="clientName" placeholder="Например: ТОО Агро-Инвест" onkeypress="handleKeyPress(event)">
+        <input type="text" id="clientName" placeholder="Например: ТОО Агро-Инвест">
     </div>
 
-    <button onclick="generateLink()">Сформировать ссылку</button>
+    <button type="button" id="makeBtn">Сформировать ссылку</button>
 
     <div class="result-box" id="resultBox">
         <p>Готовая персональная ссылка:</p>
         <input type="text" id="generatedUrl" readonly>
-        <button class="copy-btn" onclick="copyLink()" id="copyBtn">📋 Скопировать ссылку</button>
+        <button type="button" class="copy-btn" id="copyBtn">📋 Скопировать ссылку</button>
     </div>
 </div>
 
 <script>
-    const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
+    var BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
-    function generateLink() {
-        const clientInput = document.getElementById('clientName').value.trim();
+    document.getElementById('makeBtn').onclick = function() {
+        var clientInput = document.getElementById('clientName').value.trim();
         if (!clientInput) {
             alert('Пожалуйста, введите имя клиента');
             return;
         }
 
-        // Генерация случайного уникального ID для одноразового доступа
-        const randomId = Math.floor(100000 + Math.random() * 900000);
-        
-        // Формирование итогового URL
-        const finalUrl = ${BASE_URL}?client=${encodeURIComponent(clientInput)}&id=${randomId};
+        var randomId = Math.floor(100000 + Math.random() * 900000);
+        var finalUrl = BASE_URL + "?client=" + encodeURIComponent(clientInput) + "&id=" + randomId;
 
         document.getElementById('generatedUrl').value = finalUrl;
         document.getElementById('resultBox').style.display = 'block';
         document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
-    }
+    };
 
-    function copyLink() {
-        const urlInput = document.getElementById('generatedUrl');
+    document.getElementById('copyBtn').onclick = function() {
+        var urlInput = document.getElementById('generatedUrl');
         urlInput.select();
-        urlInput.setSelectionRange(0, 99999); // Для мобильных устройств
+        urlInput.setSelectionRange(0, 99999);
 
-        navigator.clipboard.writeText(urlInput.value).then(() => {
-            document.getElementById('copyBtn').innerText = '✅ Ссылка скопирована!';
-        }).catch(() => {
+        try {
             document.execCommand('copy');
             document.getElementById('copyBtn').innerText = '✅ Ссылка скопирована!';
-        });
-    }
-
-    function handleKeyPress(event) {
-        if (event.key === 'Enter') {
-            generateLink();
+        } catch (err) {
+            alert('Скопируйте ссылку вручную из поля выше');
         }
-    }
+    };
 </script>
 
 </body>
