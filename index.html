@@ -86,14 +86,25 @@
             <input type="checkbox" id="useFoundation" onchange="toggleFoundationInputs(); calculate();">
             <label for="useFoundation">Требуется расчет фундамента</label>
         </div>
-        <div id="foundation-inputs" style="display: none; gap: 10px;">
-            <div class="form-group" style="flex: 1;">
-                <label for="foundWidth">Ширина ленты (м):</label>
-                <input type="number" id="foundWidth" value="0.4" step="0.1" min="0.1" oninput="calculate()">
+        
+        <div id="foundation-box" style="display: none;">
+            <div class="form-group">
+                <label for="foundationType">Тип фундамента:</label>
+                <select id="foundationType" onchange="toggleFoundationType(); calculate();">
+                    <option value="tape">Ленточный с отмосткой и буроналивными сваями</option>
+                    <option value="screw">Винтовые сваи</option>
+                </select>
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label for="foundHeight">Высота ленты (м):</label>
-                <input type="number" id="foundHeight" value="0.6" step="0.1" min="0.1" oninput="calculate()">
+
+            <div id="tape-inputs" style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="foundWidth">Ширина ленты (м):</label>
+                    <input type="number" id="foundWidth" value="0.4" step="0.1" min="0.1" oninput="calculate()">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="foundHeight">Высота ленты (м):</label>
+                    <input type="number" id="foundHeight" value="0.6" step="0.1" min="0.1" oninput="calculate()">
+                </div>
             </div>
         </div>
 
@@ -127,7 +138,12 @@
 
     function toggleFoundationInputs() {
         var checked = document.getElementById('useFoundation').checked;
-        document.getElementById('foundation-inputs').style.display = checked ? 'flex' : 'none';
+        document.getElementById('foundation-box').style.display = checked ? 'block' : 'none';
+    }
+
+    function toggleFoundationType() {
+        var fType = document.getElementById('foundationType').value;
+        document.getElementById('tape-inputs').style.display = (fType === 'tape') ? 'flex' : 'none';
     }
 
     function calculate() {
@@ -168,7 +184,7 @@
             constrCostNoNDS += constrCostNoNDS * ((wallHeight - 4) * 0.03);
         }
 
-        // 2. Расчет ворот и их ширины для фундамента
+        // 2. Расчет ворот
         var gateVal = document.getElementById('gates').value;
         var gateCount = parseInt(document.getElementById('gateCount').value) || 0;
         
@@ -187,7 +203,7 @@
         }
 
         var gatesCostWithNDS = singleGatePriceWithNDS * gateCount;
-        var totalGatesWidthDeduction = gateWidth * gateCount; // Длина фундамента, вычитаемая под ворота
+        var totalGatesWidthDeduction = gateWidth * gateCount;
 
         // 3. Расчет монтажа
         var montageCostNoNDS = 0;
@@ -199,25 +215,38 @@
         var distance = parseFloat(document.getElementById('distance').value) || 0;
         var deliveryCostNoNDS = distance * 1000;
 
-        // 5. Расчет фундамента (с учётом вычета под ворота)
+        // 5. Расчет фундамента
         var foundationCostNoNDS = 0;
-        var totalCubes = 0;
+        var foundationDetails = "";
+
         if (document.getElementById('useFoundation').checked) {
-            var fW = parseFloat(document.getElementById('foundWidth').value) || 0.4;
-            var fH = parseFloat(document.getElementById('foundHeight').value) || 0.6;
-
+            var fType = document.getElementById('foundationType').value;
             var fullPerimeter = 2 * (width + length);
-            // Вычитаем длину ворот из периметра ленты
-            var tapeLength = Math.max(0, fullPerimeter - totalGatesWidthDeduction);
-            
-            var tapeCubes = tapeLength * fW * fH;
-            var blindAreaCubes = fullPerimeter * 1.0 * 0.1; // Отмостка считается по всему периметру
 
-            var supportsCount = Math.floor(length / 3) * 2 + 8;
-            var pilesCubes = supportsCount * 0.25;
+            if (fType === 'tape') {
+                var fW = parseFloat(document.getElementById('foundWidth').value) || 0.4;
+                var fH = parseFloat(document.getElementById('foundHeight').value) || 0.6;
 
-            totalCubes = tapeCubes + blindAreaCubes + pilesCubes;
-            foundationCostNoNDS = totalCubes * 135000;
+                var tapeLength = Math.max(0, fullPerimeter - totalGatesWidthDeduction);
+                var tapeCubes = tapeLength * fW * fH;
+                var blindAreaCubes = fullPerimeter * 1.0 * 0.1;
+
+                var supportsCount = Math.floor(length / 3) * 2 + 8;
+                var pilesCubes = supportsCount * 0.25;
+
+                var totalCubes = tapeCubes + blindAreaCubes + pilesCubes;
+                foundationCostNoNDS = totalCubes * 135000;
+                foundationDetails = 'Объём фундамента: <b>' + totalCubes.toFixed(2) + ' м³</b><br>';
+            } else if (fType === 'screw') {
+                var screwPricePerMeter = 0;
+                if (width >= 10 && width <= 13) screwPricePerMeter = 22000;
+                else if (width >= 14 && width <= 17) screwPricePerMeter = 26000;
+                else if (width >= 18 && width <= 22) screwPricePerMeter = 30000;
+                else if (width >= 23) screwPricePerMeter = 34000;
+
+                foundationCostNoNDS = fullPerimeter * screwPricePerMeter;
+                foundationDetails = 'Периметр свайного фундамента: <b>' + fullPerimeter + ' м</b><br>';
+            }
         }
 
         // Применение НДС 16% ко всем статьям без НДС
@@ -226,7 +255,7 @@
 
         document.getElementById('total-price').innerHTML = 
             'Площадь ангара: <b>' + area + ' м²</b><br>' +
-            (totalCubes > 0 ? 'Объём фундамента: <b>' + totalCubes.toFixed(2) + ' м³</b><br>' : '') +
+            foundationDetails +
             'Итоговая стоимость: <br><span style="font-size: 24px; color: #007bff;"><b>' + Math.round(totalFinal).toLocaleString('ru-RU') + ' ₸</b></span>';
     }
 
