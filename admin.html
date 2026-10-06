@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор ссылок | Админ-панель</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eef7ee;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            display: none;
+        }
+        .result-box p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #155724;
+            font-weight: bold;
+        }
+        .copy-btn {
+            background-color: #007bff;
+            margin-top: 5px;
+        }
+        .copy-btn:hover {
+            background-color: #0069d9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🔗 Генератор персональных ссылок</h2>
+    
+    <div class="form-group">
+        <label for="clientName">Имя клиента или название компании:</label>
+        <input type="text" id="clientName" placeholder="Например: ТОО Агро-Инвест" onkeypress="handleKeyPress(event)">
+    </div>
+
+    <button onclick="generateLink()">Сформировать ссылку</button>
+
+    <div class="result-box" id="resultBox">
+        <p>Готовая персональная ссылка:</p>
+        <input type="text" id="generatedUrl" readonly>
+        <button class="copy-btn" onclick="copyLink()" id="copyBtn">📋 Скопировать ссылку</button>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
+
+    function generateLink() {
+        const clientInput = document.getElementById('clientName').value.trim();
+        if (!clientInput) {
+            alert('Пожалуйста, введите имя клиента');
+            return;
+        }
+
+        // Генерация случайного уникального ID для одноразового доступа
+        const randomId = Math.floor(100000 + Math.random() * 900000);
+        
+        // Формирование итогового URL
+        const finalUrl = ${BASE_URL}?client=${encodeURIComponent(clientInput)}&id=${randomId};
+
+        document.getElementById('generatedUrl').value = finalUrl;
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
+    }
+
+    function copyLink() {
+        const urlInput = document.getElementById('generatedUrl');
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999); // Для мобильных устройств
+
+        navigator.clipboard.writeText(urlInput.value).then(() => {
+            document.getElementById('copyBtn').innerText = '✅ Ссылка скопирована!';
+        }).catch(() => {
+            document.execCommand('copy');
+            document.getElementById('copyBtn').innerText = '✅ Ссылка скопирована!';
+        });
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            generateLink();
+        }
+    }
+</script>
+
+</body>
+</html>
