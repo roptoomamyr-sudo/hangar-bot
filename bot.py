@@ -7,7 +7,9 @@ from aiogram.filters import Command
 from aiohttp import web
 
 BOT_TOKEN = "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw"
+# Замените число ниже на ваш ID, который вы получили от @userinfobot:
 ADMIN_CHAT_ID = 5303673207
+
 SITE_DOMAIN = "https://magenta-julienne-22.tiiny.site"
 
 logging.basicConfig(level=logging.INFO)
@@ -97,5 +99,5 @@ async def main():
 
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     asyncio.run(main())
