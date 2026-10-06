@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiohttp import web
 
-BOT_TOKEN = "8572741655:AAGnFIPw1ewjXcB0Koz-QwrLEfBS38i4yJw"
+BOT_TOKEN = "8572741655:AAHwN21W7nlgEVdbE6s-tYAaQxhoOBTQaHo"
 ADMIN_CHAT_ID = 5303673207
 SITE_DOMAIN = "https://roptoomamyr-sudo.github.io/hangar-bot"
 
