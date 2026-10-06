@@ -5,98 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор ссылок</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 100%;
-            padding: 25px;
-            box-sizing: border-box;
-        }
-        h2 { margin-top: 0; color: #333; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; width: 100%; padding: 25px; box-sizing: border-box; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #eef7ee;
-            border: 1px solid #c3e6cb;
-            border-radius: 6px;
-            display: none;
-        }
-        .copy-btn { background-color: #007bff; margin-top: 8px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
+        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #28a745; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:disabled { background: #94d3a2; cursor: not-allowed; }
+        .result-box { margin-top: 20px; padding: 15px; background: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; display: none; }
+        .copy-btn { background: #007bff; margin-top: 8px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🔗 Генератор ссылок</h2>
-    
+    <h2>🔗 Генератор 100% одноразовых ссылок</h2>
     <div class="form-group">
         <label for="clientName">Имя клиента / Компания:</label>
         <input type="text" id="clientName" placeholder="Введите имя...">
     </div>
-
-    <button onclick="buildLink()">Сформировать ссылку</button>
+    <button onclick="createLink()" id="genBtn">Сформировать ссылку</button>
 
     <div class="result-box" id="resultBox">
-        <label for="generatedUrl">Готовая ссылка:</label>
+        <label for="generatedUrl">Готовая одноразовая ссылка:</label>
         <input type="text" id="generatedUrl" readonly>
-        <button class="copy-btn" onclick="copyResult()" id="copyBtn">📋 Скопировать ссылку</button>
+        <button class="copy-btn" onclick="copyLink()" id="copyBtn">📋 Скопировать ссылку</button>
     </div>
 </div>
 
 <script>
-    function buildLink() {
-        var input = document.getElementById('clientName').value;
-        if (!input || input.trim() === '') {
-            alert('Введите имя клиента');
-            return;
+    const BIN_ID = "6ac4cb26ffd5d16053522bbd";
+    const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
+    const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
+
+    async function createLink() {
+        const client = document.getElementById('clientName').value.trim();
+        if (!client) { alert('Введите имя клиента'); return; }
+
+        const btn = document.getElementById('genBtn');
+        btn.disabled = true;
+        btn.innerText = "Создание ссылки...";
+
+        const linkId = "id_" + Math.floor(Math.random() * 899999 + 100000);
+
+        try {
+            const res = await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
+                headers: { "X-Master-Key": SECRET_KEY }
+            });
+            const data = await res.json();
+            const currentDb = data.record || {};
+
+            currentDb[linkId] = { client: client, used: false };
+
+            await fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Master-Key": SECRET_KEY
+                },
+                body: JSON.stringify(currentDb)
+            });
+
+            const finalUrl = ${BASE_URL}?client=${encodeURIComponent(client)}&id=${linkId};
+            document.getElementById('generatedUrl').value = finalUrl;
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
+
+        } catch (err) {
+            alert('Ошибка при создании ссылки. Попробуйте еще раз.');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Сформировать ссылку";
         }
-        var cleanName = input.trim();
-        var randomNum = Math.floor(Math.random() * 899999) + 100000;
-        var url = 'https://roptoomamyr-sudo.github.io/hangar-bot/?client=' + encodeURIComponent(cleanName) + '&id=' + randomNum;
-        
-        document.getElementById('generatedUrl').value = url;
-        document.getElementById('resultBox').style.display = 'block';
-        document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
     }
 
-    function copyResult() {
-        var field = document.getElementById('generatedUrl');
+    function copyLink() {
+        const field = document.getElementById('generatedUrl');
         field.select();
-        field.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(field.value);
         document.getElementById('copyBtn').innerText = '✅ Скопировано!';
     }
