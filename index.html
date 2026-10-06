@@ -85,96 +85,98 @@
 </div>
 
 <script>
-    const BIN_ID = "6ac4cb26ffd5d16053522bbd";
-    const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
+    var BIN_ID = "6ac4cb26ffd5d16053522bbd";
+    var SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
 
     function calculate() {
-        const shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
-        const width = parseFloat(document.getElementById('width').value) || 0;
-        const length = parseFloat(document.getElementById('length').value) || 0;
-        const basePricePerMeter = parseFloat(document.getElementById('type').value) || 0;
+        var shapeCoeff = parseFloat(document.getElementById('shape').value) || 1.0;
+        var width = parseFloat(document.getElementById('width').value) || 0;
+        var length = parseFloat(document.getElementById('length').value) || 0;
+        var basePricePerMeter = parseFloat(document.getElementById('type').value) || 0;
 
-        const area = width * length;
-        let pricePerMeter = basePricePerMeter * shapeCoeff;
+        var area = width * length;
+        var pricePerMeter = basePricePerMeter * shapeCoeff;
         if (document.getElementById('foundation').checked) pricePerMeter += 5000;
 
-        let total = area * pricePerMeter;
+        var total = area * pricePerMeter;
         if (document.getElementById('gates').checked) total += 250000;
 
-        document.getElementById('total-price').innerHTML = `
-            Площадь: <b>${area} м²</b><br>
-            Ориентировочная стоимость: <b>${Math.round(total).toLocaleString('ru-RU')} ₸</b>
-        `;
-    }
-
-    async function verifyAndBurnToken() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const linkId = urlParams.get('id');
-        const client = urlParams.get('client');
-
-        if (!linkId) {
-            showError("Ссылка не содержит идентификатора доступа.");
-            return;
-        }
-
-        // Автоматический отмена запроса через 5 секунд, если база зависла
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        try {
-            const res = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", {
-                headers: { "X-Master-Key": SECRET_KEY },
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (!res.ok) {
-                showError("Ошибка авторизации базы данных (" + res.status + ")");
-                return;
-            }
-
-            const data = await res.json();
-            const db = data.record || {};
-
-            if (!db[linkId] || db[linkId].used === true) {
-                showError("Эта ссылка уже сгорела или не существует.");
-                return;
-            }
-
-            // Помечаем ссылку как использованную
-            db[linkId].used = true;
-
-            await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Master-Key": SECRET_KEY
-                },
-                body: JSON.stringify(db)
-            });
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('calculator').style.display = 'block';
-            if (client) {
-                document.getElementById('welcome-client').innerText = Расчёт для: ${decodeURIComponent(client)};
-            }
-            calculate();
-
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                showError("Превышено время ожидания ответа от базы данных.");
-            } else {
-                showError("Ошибка сети: " + err.message);
-            }
-        }
+        document.getElementById('total-price').innerHTML = 
+            'Площадь: <b>' + area + ' м²</b><br>' +
+            'Ориентировочная стоимость: <b>' + Math.round(total).toLocaleString('ru-RU') + ' ₸</b>';
     }
 
     function showError(msg) {
         document.getElementById('loading').style.display = 'none';
+        document.getElementById('calculator').style.display = 'none';
         document.getElementById('error-box').style.display = 'block';
         if (msg) {
             document.getElementById('error-text').innerText = msg;
         }
+    }
+
+    function verifyAndBurnToken() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var linkId = urlParams.get('id');
+        var client = urlParams.get('client');
+
+        if (!linkId) {
+            showError("Отсутствует идентификатор ссылки.");
+            return;
+        }
+
+        var xhrGet = new XMLHttpRequest();
+        xhrGet.open("GET", "https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", true);
+        xhrGet.setRequestHeader("X-Master-Key", SECRET_KEY);
+        
+        xhrGet.onload = function() {
+            if (xhrGet.status !== 200) {
+                showError("Ошибка доступа к базе данных (Код: " + xhrGet.status + ")");
+                return;
+            }
+
+            try {
+                var response = JSON.parse(xhrGet.responseText);
+                var db = response.record || {};
+
+                if (!db[linkId] || db[linkId].used === true) {
+                    showError("Эта ссылка уже сгорела или не существует.");
+                    return;
+                }
+
+                // Помечаем ссылку как использованную
+                db[linkId].used = true;
+
+                var xhrPut = new XMLHttpRequest();
+                xhrPut.open("PUT", "https://api.jsonbin.io/v3/b/" + BIN_ID, true);
+                xhrPut.setRequestHeader("Content-Type", "application/json");
+                xhrPut.setRequestHeader("X-Master-Key", SECRET_KEY);
+
+                xhrPut.onload = function() {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('calculator').style.display = 'block';
+                    if (client) {
+                        document.getElementById('welcome-client').innerText = "Расчёт для: " + decodeURIComponent(client);
+                    }
+                    calculate();
+                };
+
+                xhrPut.onerror = function() {
+                    showError("Ошибка обновления статуса ссылки.");
+                };
+
+                xhrPut.send(JSON.stringify(db));
+
+            } catch(e) {
+                showError("Ошибка обработки данных.");
+            }
+        };
+
+        xhrGet.onerror = function() {
+            showError("Не удалось связаться с сервером.");
+        };
+
+        xhrGet.send();
     }
 
     verifyAndBurnToken();
