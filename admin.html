@@ -3,37 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор ссылок</title>
+    <title>Панель администратора — Генератор ссылок</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; width: 100%; padding: 25px; box-sizing: border-box; }
-        h2 { text-align: center; color: #333; margin-top: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; width: 100%; padding: 25px; box-sizing: border-box; margin-bottom: 20px; }
+        h2, h3 { margin-top: 0; color: #333; text-align: center; }
         .form-group { margin-bottom: 15px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #28a745; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:disabled { background: #94d3a2; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; background: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; display: none; }
-        .copy-btn { background: #007bff; margin-top: 8px; }
-        .status-msg { margin-top: 10px; font-size: 14px; text-align: center; font-weight: bold; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; border: none; border-radius: 6px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .result-box { margin-top: 15px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; word-break: break-all; display: none; }
+        .status { margin-top: 10px; font-weight: bold; text-align: center; }
+        
+        /* Таблица истории */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; color: #333; }
+        .badge-pending { background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-used { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .refresh-btn { background-color: #6c757d; margin-bottom: 10px; }
+        .refresh-btn:hover { background-color: #5a6268; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🔗 Генератор 100% одноразовых ссылок</h2>
+    <h2>🔑 Генератор одноразовых ссылок</h2>
+    
     <div class="form-group">
-        <label for="clientName">Имя клиента / Компания:</label>
-        <input type="text" id="clientName" placeholder="Введите имя...">
+        <label for="clientName">Имя клиента / Организация:</label>
+        <input type="text" id="clientName" placeholder="Например: Иван (ТОО Агро)">
     </div>
-    <button onclick="createLink()" id="genBtn">Сформировать ссылку</button>
-    <div id="statusMsg" class="status-msg"></div>
 
-    <div class="result-box" id="resultBox">
-        <label for="generatedUrl">Готовая одноразовая ссылка:</label>
-        <input type="text" id="generatedUrl" readonly>
-        <button class="copy-btn" onclick="copyLink()" id="copyBtn">📋 Скопировать ссылку</button>
+    <button onclick="generateLink()">Сформировать ссылку</button>
+
+    <div class="status" id="status-text"></div>
+
+    <div class="result-box" id="result-box">
+        <strong>Готовая ссылка для клиента:</strong><br>
+        <p id="generated-url" style="color: #007bff; font-weight: bold; margin: 10px 0;"></p>
+        <button onclick="copyUrl()" style="background-color: #28a745;">Скопировать ссылку</button>
     </div>
+</div>
+
+<div class="card">
+    <h3>📊 История ссылок и статусы</h3>
+    <button class="refresh-btn" onclick="loadHistory()">🔄 Обновить список клиентов</button>
+    
+    <div id="history-loading" style="text-align: center; color: #6c757d; display: none;">Загрузка списка...</div>
+
+    <table id="history-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Клиент</th>
+                <th>Дата создания</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+    </table>
 </div>
 
 <script>
@@ -41,72 +70,129 @@
     const SECRET_KEY = "$2a$10$IMgqPeq6EGMUWkoPpesa5.NXtCKi6SpV9oE.H/hRWRVC9gheuz1WO";
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
-    async function createLink() {
-        const clientInput = document.getElementById('clientName');
-        const client = clientInput ? clientInput.value.trim() : "";
-        const status = document.getElementById('statusMsg');
-        const btn = document.getElementById('genBtn');
-        
-        if (!client) { 
-            alert('Введите имя клиента'); 
-            return; 
+    function generateLink() {
+        const clientName = document.getElementById('clientName').value.trim();
+        if (!clientName) {
+            alert("Пожалуйста, введите имя клиента!");
+            return;
         }
 
-        btn.disabled = true;
-        btn.innerText = "Создание ссылки...";
-        status.style.color = "#007bff";
-        status.innerText = "Подключение к базе данных...";
+        const statusText = document.getElementById('status-text');
+        statusText.style.color = "#007bff";
+        statusText.innerText = "Подключение к базе данных...";
 
-        const linkId = "id_" + Math.floor(Math.random() * 899999 + 100000);
+        const xhrGet = new XMLHttpRequest();
+        xhrGet.open("GET", https://api.jsonbin.io/v3/b/${BIN_ID}/latest, true);
+        xhrGet.setRequestHeader("X-Master-Key", SECRET_KEY);
 
-        try {
-            const res = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", {
-                headers: { "X-Master-Key": SECRET_KEY }
-            });
-
-            if (!res.ok) {
-                throw new Error("Ошибка базы данных (" + res.status + ")");
+        xhrGet.onload = function() {
+            if (xhrGet.status !== 200) {
+                statusText.style.color = "red";
+                statusText.innerText = "Ошибка получения базы данных (Код: " + xhrGet.status + ")";
+                return;
             }
 
-            const data = await res.json();
-            const currentDb = data.record || {};
+            try {
+                const response = JSON.parse(xhrGet.responseText);
+                const db = response.record || {};
 
-            currentDb[linkId] = { client: client, used: false };
+                const linkId = "id_" + Date.now();
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
 
-            const putRes = await fetch("https://api.jsonbin.io/v3/b/" + BIN_ID, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Master-Key": SECRET_KEY
-                },
-                body: JSON.stringify(currentDb)
-            });
+                db[linkId] = {
+                    client: clientName,
+                    used: false,
+                    created_at: dateStr
+                };
 
-            if (!putRes.ok) {
-                throw new Error("Ошибка сохранения");
+                const xhrPut = new XMLHttpRequest();
+                xhrPut.open("PUT", https://api.jsonbin.io/v3/b/${BIN_ID}, true);
+                xhrPut.setRequestHeader("Content-Type", "application/json");
+                xhrPut.setRequestHeader("X-Master-Key", SECRET_KEY);
+
+                xhrPut.onload = function() {
+                    if (xhrPut.status === 200) {
+                        statusText.innerText = "";
+                        const fullUrl = ${BASE_URL}?client=${encodeURIComponent(clientName)}&id=${linkId};
+                        document.getElementById('generated-url').innerText = fullUrl;
+                        document.getElementById('result-box').style.display = 'block';
+                        document.getElementById('clientName').value = '';
+                        loadHistory(); // Автоматически обновляем историю
+                    } else {
+                        statusText.style.color = "red";
+                        statusText.innerText = "Ошибка записи ссылки.";
+                    }
+                };
+
+                xhrPut.send(JSON.stringify(db));
+
+            } catch(e) {
+                statusText.style.color = "red";
+                statusText.innerText = "Ошибка обработки ответа.";
             }
+        };
 
-            const finalUrl = BASE_URL + "?client=" + encodeURIComponent(client) + "&id=" + linkId;
-            document.getElementById('generatedUrl').value = finalUrl;
-            document.getElementById('resultBox').style.display = 'block';
-            document.getElementById('copyBtn').innerText = '📋 Скопировать ссылку';
-            status.innerText = "";
-
-        } catch (err) {
-            status.style.color = "#dc3545";
-            status.innerText = "Ошибка: " + err.message;
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Сформировать ссылку";
-        }
+        xhrGet.send();
     }
 
-    function copyLink() {
-        const field = document.getElementById('generatedUrl');
-        field.select();
-        navigator.clipboard.writeText(field.value);
-        document.getElementById('copyBtn').innerText = '✅ Скопировано!';
+    function copyUrl() {
+        const urlText = document.getElementById('generated-url').innerText;
+        navigator.clipboard.writeText(urlText).then(() => {
+            alert("Ссылка скопирована в буфер обмена!");
+        });
     }
+
+    function loadHistory() {
+        const loading = document.getElementById('history-loading');
+        const table = document.getElementById('history-table');
+        const tbody = document.getElementById('history-body');
+
+        loading.style.display = 'block';
+        table.style.display = 'none';
+        tbody.innerHTML = '';
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", https://api.jsonbin.io/v3/b/${BIN_ID}/latest, true);
+        xhr.setRequestHeader("X-Master-Key", SECRET_KEY);
+
+        xhr.onload = function() {
+            loading.style.display = 'none';
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                const db = response.record || {};
+                
+                const keys = Object.keys(db).reverse(); // Свежие ссылки вверху
+                if (keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ссылки ещё не создавались</td></tr>';
+                } else {
+                    keys.forEach(key => {
+                        const item = db[key];
+                        if (typeof item === 'object' && item.client) {
+                            const tr = document.createElement('tr');
+                            
+                            const statusBadge = item.used 
+                                ? '<span class="badge-used">🔴 Сгорела (Открыта)</span>' 
+                                : '<span class="badge-pending">🟡 Ожидает открытия</span>';
+
+                            tr.innerHTML = `
+                                <td><b>${item.client}</b></td>
+                                <td>${item.created_at || '—'}</td>
+                                <td>${statusBadge}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        }
+                    });
+                }
+                table.style.display = 'table';
+            }
+        };
+
+        xhr.send();
+    }
+
+    // Автоматическая загрузка истории при открытии админки
+    loadHistory();
 </script>
 
 </body>
