@@ -13,8 +13,9 @@
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
         button { width: 100%; padding: 12px; background-color: #007bff; border: none; border-radius: 6px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
         .result-box { margin-top: 15px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; word-break: break-all; display: none; }
-        .status { margin-top: 10px; font-weight: bold; text-align: center; }
+        .status { margin-top: 10px; font-weight: bold; text-align: center; color: #007bff; }
     </style>
 </head>
 <body>
@@ -27,14 +28,14 @@
         <input type="text" id="clientName" placeholder="Например: Иван (ТОО Агро)">
     </div>
 
-    <button id="genBtn" onclick="generateLink()">Сформировать ссылку</button>
+    <button id="mainBtn" type="button">Сформировать ссылку</button>
 
     <div class="status" id="status-text"></div>
 
     <div class="result-box" id="result-box">
         <strong>Готовая ссылка для клиента:</strong><br>
         <p id="generated-url" style="color: #007bff; font-weight: bold; margin: 10px 0;"></p>
-        <button onclick="copyUrl()" style="background-color: #28a745;">Скопировать ссылку</button>
+        <button id="copyBtn" type="button" style="background-color: #28a745;">Скопировать ссылку</button>
     </div>
 </div>
 
@@ -43,35 +44,36 @@
     const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
-    function generateLink() {
+    document.getElementById('mainBtn').addEventListener('click', function() {
         const clientInput = document.getElementById('clientName');
         const clientName = clientInput.value.trim();
+
         if (!clientName) {
             alert("Пожалуйста, введите имя клиента!");
             return;
         }
 
-        const btn = document.getElementById('genBtn');
+        const btn = document.getElementById('mainBtn');
         const statusText = document.getElementById('status-text');
-        
+        const resultBox = document.getElementById('result-box');
+
         btn.disabled = true;
         statusText.style.color = "#007bff";
-        statusText.innerText = "Подключение к серверу...";
+        statusText.innerText = "Подключение к базе данных...";
+        resultBox.style.display = "none";
 
-        // Шаг 1: Получаем текущее состояние базы
-        fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
-            method: 'GET',
+        // Запрос на получение данных
+        fetch("https://api.jsonbin.io/v3/b/" + BIN_ID + "/latest", {
+            method: "GET",
             headers: {
-                'X-Master-Key': SECRET_KEY
+                "X-Master-Key": SECRET_KEY
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Ошибка чтения базы: " + response.status);
-            }
-            return response.json();
+        .then(function(res) {
+            if (!res.ok) throw new Error("Ошибка чтения базы: " + res.status);
+            return res.json();
         })
-        .then(data => {
+        .then(function(data) {
             let db = data.record;
             if (!db || typeof db !== 'object' || Array.isArray(db)) {
                 db = {};
@@ -83,43 +85,41 @@
                 used: false
             };
 
-            // Шаг 2: Записываем обновленные данные
-            return fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
-                method: 'PUT',
+            // Запрос на запись
+            return fetch("https://api.jsonbin.io/v3/b/" + BIN_ID, {
+                method: "PUT",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': SECRET_KEY
+                    "Content-Type": "application/json",
+                    "X-Master-Key": SECRET_KEY
                 },
                 body: JSON.stringify(db)
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error("Ошибка сохранения: " + res.status);
-                }
-                return { linkId: linkId };
+            .then(function(resPut) {
+                if (!resPut.ok) throw new Error("Ошибка сохранения: " + resPut.status);
+                return linkId;
             });
         })
-        .then(result => {
+        .then(function(linkId) {
             btn.disabled = false;
             statusText.innerText = "";
-            const fullUrl = ${BASE_URL}?client=${encodeURIComponent(clientName)}&id=${result.linkId};
+            const fullUrl = BASE_URL + "?client=" + encodeURIComponent(clientName) + "&id=" + linkId;
             document.getElementById('generated-url').innerText = fullUrl;
-            document.getElementById('result-box').style.display = 'block';
-            clientInput.value = '';
+            resultBox.style.display = "block";
+            clientInput.value = "";
         })
-        .catch(error => {
+        .catch(function(err) {
             btn.disabled = false;
             statusText.style.color = "red";
-            statusText.innerText = error.message;
+            statusText.innerText = err.message;
         });
-    }
+    });
 
-    function copyUrl() {
+    document.getElementById('copyBtn').addEventListener('click', function() {
         const urlText = document.getElementById('generated-url').innerText;
-        navigator.clipboard.writeText(urlText).then(() => {
+        navigator.clipboard.writeText(urlText).then(function() {
             alert("Ссылка скопирована в буфер обмена!");
         });
-    }
+    });
 </script>
 
 </body>
