@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель администратора — Генератор ссылок</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; width: 100%; padding: 25px; box-sizing: border-box; margin-bottom: 20px; }
-        h2, h3 { margin-top: 0; color: #333; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; width: 100%; padding: 25px; box-sizing: border-box; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
@@ -15,15 +15,6 @@
         button:hover { background-color: #0056b3; }
         .result-box { margin-top: 15px; padding: 15px; background-color: #eef7ee; border: 1px solid #c3e6cb; border-radius: 6px; word-break: break-all; display: none; }
         .status { margin-top: 10px; font-weight: bold; text-align: center; }
-        
-        /* Таблица истории */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f8f9fa; color: #333; }
-        .badge-pending { background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .badge-used { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .refresh-btn { background-color: #6c757d; margin-bottom: 10px; }
-        .refresh-btn:hover { background-color: #5a6268; }
     </style>
 </head>
 <body>
@@ -47,32 +38,13 @@
     </div>
 </div>
 
-<div class="card">
-    <h3>📊 История ссылок и статусы</h3>
-    <button class="refresh-btn" onclick="loadHistory()">🔄 Обновить список клиентов</button>
-    
-    <div id="history-loading" style="text-align: center; color: #6c757d; display: none;">Загрузка списка...</div>
-
-    <table id="history-table" style="display: none;">
-        <thead>
-            <tr>
-                <th>Клиент</th>
-                <th>Дата создания</th>
-                <th>Статус</th>
-            </tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-    </table>
-</div>
-
 <script>
     const BIN_ID = "6ac4cb26ffd5d16053522bbd";
     const SECRET_KEY = "$2a$10$IMgqPeq6EGMUWkoPpesa5.NXtCKi6SpV9oE.H/hRWRVC9gheuz1WO";
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
     function generateLink() {
-        const clientInput = document.getElementById('clientName');
-        const clientName = clientInput ? clientInput.value.trim() : "";
+        const clientName = document.getElementById('clientName').value.trim();
         if (!clientName) {
             alert("Пожалуйста, введите имя клиента!");
             return;
@@ -95,16 +67,12 @@
 
             try {
                 const response = JSON.parse(xhrGet.responseText);
-                let db = response.record || {};
+                const db = response.record || {};
 
                 const linkId = "id_" + Date.now();
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-
                 db[linkId] = {
                     client: clientName,
-                    used: false,
-                    created_at: dateStr
+                    used: false
                 };
 
                 const xhrPut = new XMLHttpRequest();
@@ -119,7 +87,6 @@
                         document.getElementById('generated-url').innerText = fullUrl;
                         document.getElementById('result-box').style.display = 'block';
                         document.getElementById('clientName').value = '';
-                        loadHistory();
                     } else {
                         statusText.style.color = "red";
                         statusText.innerText = "Ошибка записи ссылки.";
@@ -129,15 +96,9 @@
                 xhrPut.send(JSON.stringify(db));
 
             } catch(e) {
-                console.error(e);
                 statusText.style.color = "red";
-                statusText.innerText = "Ошибка обработки данных.";
+                statusText.innerText = "Ошибка обработки ответа.";
             }
-        };
-
-        xhrGet.onerror = function() {
-            statusText.style.color = "red";
-            statusText.innerText = "Ошибка сети при обращении к серверу.";
         };
 
         xhrGet.send();
@@ -149,66 +110,6 @@
             alert("Ссылка скопирована в буфер обмена!");
         });
     }
-
-    function loadHistory() {
-        const loading = document.getElementById('history-loading');
-        const table = document.getElementById('history-table');
-        const tbody = document.getElementById('history-body');
-
-        if (loading) loading.style.display = 'block';
-        if (table) table.style.display = 'none';
-        if (tbody) tbody.innerHTML = '';
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", https://api.jsonbin.io/v3/b/${BIN_ID}/latest, true);
-        xhr.setRequestHeader("X-Master-Key", SECRET_KEY);
-
-        xhr.onload = function() {
-            if (loading) loading.style.display = 'none';
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    const db = response.record || {};
-                    
-                    const keys = Object.keys(db).reverse();
-                    if (keys.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ссылки ещё не создавались</td></tr>';
-                    } else {
-                        keys.forEach(key => {
-                            const item = db[key];
-                            if (item && typeof item === 'object') {
-                                const clientName = item.client || (typeof item === 'string' ? item : 'Без имени');
-                                const isUsed = item.used === true;
-                                const createdAt = item.created_at || '—';
-
-                                const tr = document.createElement('tr');
-                                const statusBadge = isUsed 
-                                    ? '<span class="badge-used">🔴 Сгорела (Открыта)</span>' 
-                                    : '<span class="badge-pending">🟡 Ожидает открытия</span>';
-
-                                tr.innerHTML = `
-                                    <td><b>${clientName}</b></td>
-                                    <td>${createdAt}</td>
-                                    <td>${statusBadge}</td>
-                                `;
-                                tbody.appendChild(tr);
-                            }
-                        });
-                    }
-                    if (table) table.style.display = 'table';
-                } catch(e) {
-                    console.error("Ошибка при разборе истории:", e);
-                }
-            }
-        };
-
-        xhr.send();
-    }
-
-    // Автоматическая загрузка истории при открытии
-    window.onload = function() {
-        loadHistory();
-    };
 </script>
 
 </body>
