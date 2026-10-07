@@ -27,7 +27,7 @@
         <input type="text" id="clientName" placeholder="Например: Иван (ТОО Агро)">
     </div>
 
-    <button onclick="generateLink()">Сформировать ссылку</button>
+    <button id="genBtn" onclick="generateLink()">Сформировать ссылку</button>
 
     <div class="status" id="status-text"></div>
 
@@ -40,68 +40,78 @@
 
 <script>
     const BIN_ID = "6ac4cb26ffd5d16053522bbd";
-    const SECRET_KEY = "$2a$10$IMgqPeq6EGMUWkoPpesa5.NXtCKi6SpV9oE.H/hRWRVC9gheuz1WO";
+    const SECRET_KEY = "$2a$10$9Exa4U6mhnBLUonlmGU9k.F34LVjzJAC.TOInxH6vJHAt6JF1HBry";
     const BASE_URL = "https://roptoomamyr-sudo.github.io/hangar-bot/";
 
     function generateLink() {
-        const clientName = document.getElementById('clientName').value.trim();
+        const clientInput = document.getElementById('clientName');
+        const clientName = clientInput.value.trim();
         if (!clientName) {
             alert("Пожалуйста, введите имя клиента!");
             return;
         }
 
+        const btn = document.getElementById('genBtn');
         const statusText = document.getElementById('status-text');
+        
+        btn.disabled = true;
         statusText.style.color = "#007bff";
-        statusText.innerText = "Подключение к базе данных...";
+        statusText.innerText = "Подключение к серверу...";
 
-        const xhrGet = new XMLHttpRequest();
-        xhrGet.open("GET", https://api.jsonbin.io/v3/b/${BIN_ID}/latest, true);
-        xhrGet.setRequestHeader("X-Master-Key", SECRET_KEY);
-
-        xhrGet.onload = function() {
-            if (xhrGet.status !== 200) {
-                statusText.style.color = "red";
-                statusText.innerText = "Ошибка получения базы данных (Код: " + xhrGet.status + ")";
-                return;
+        // Шаг 1: Получаем текущее состояние базы
+        fetch(https://api.jsonbin.io/v3/b/${BIN_ID}/latest, {
+            method: 'GET',
+            headers: {
+                'X-Master-Key': SECRET_KEY
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Ошибка чтения базы: " + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            let db = data.record;
+            if (!db || typeof db !== 'object' || Array.isArray(db)) {
+                db = {};
             }
 
-            try {
-                const response = JSON.parse(xhrGet.responseText);
-                const db = response.record || {};
+            const linkId = "id_" + Date.now();
+            db[linkId] = {
+                client: clientName,
+                used: false
+            };
 
-                const linkId = "id_" + Date.now();
-                db[linkId] = {
-                    client: clientName,
-                    used: false
-                };
-
-                const xhrPut = new XMLHttpRequest();
-                xhrPut.open("PUT", https://api.jsonbin.io/v3/b/${BIN_ID}, true);
-                xhrPut.setRequestHeader("Content-Type", "application/json");
-                xhrPut.setRequestHeader("X-Master-Key", SECRET_KEY);
-
-                xhrPut.onload = function() {
-                    if (xhrPut.status === 200) {
-                        statusText.innerText = "";
-                        const fullUrl = ${BASE_URL}?client=${encodeURIComponent(clientName)}&id=${linkId};
-                        document.getElementById('generated-url').innerText = fullUrl;
-                        document.getElementById('result-box').style.display = 'block';
-                        document.getElementById('clientName').value = '';
-                    } else {
-                        statusText.style.color = "red";
-                        statusText.innerText = "Ошибка записи ссылки.";
-                    }
-                };
-
-                xhrPut.send(JSON.stringify(db));
-
-            } catch(e) {
-                statusText.style.color = "red";
-                statusText.innerText = "Ошибка обработки ответа.";
-            }
-        };
-
-        xhrGet.send();
+            // Шаг 2: Записываем обновленные данные
+            return fetch(https://api.jsonbin.io/v3/b/${BIN_ID}, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': SECRET_KEY
+                },
+                body: JSON.stringify(db)
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("Ошибка сохранения: " + res.status);
+                }
+                return { linkId: linkId };
+            });
+        })
+        .then(result => {
+            btn.disabled = false;
+            statusText.innerText = "";
+            const fullUrl = ${BASE_URL}?client=${encodeURIComponent(clientName)}&id=${result.linkId};
+            document.getElementById('generated-url').innerText = fullUrl;
+            document.getElementById('result-box').style.display = 'block';
+            clientInput.value = '';
+        })
+        .catch(error => {
+            btn.disabled = false;
+            statusText.style.color = "red";
+            statusText.innerText = error.message;
+        });
     }
 
     function copyUrl() {
